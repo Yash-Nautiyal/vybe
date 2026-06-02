@@ -1,0 +1,37 @@
+<svg width="1440" height="1080" viewBox="0 0 1440 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="mask0_4173_6268" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="1440" height="1080">
+<rect width="1440" height="1080" fill="url(#paint0_radial_4173_6268)"/>
+</mask>
+<g mask="url(#mask0_4173_6268)">
+<line x1="280.5" y1="2.18557e-08" x2="280.5" y2="1080" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line x1="360.5" y1="2.18557e-08" x2="360.5" y2="1080" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line x1="440.5" y1="2.18557e-08" x2="440.5" y2="1080" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line x1="520.5" y1="2.18557e-08" x2="520.5" y2="1080" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line x1="600.5" y1="2.18557e-08" x2="600.5" y2="1080" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line x1="680.5" y1="2.18557e-08" x2="680.5" y2="1080" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line x1="760.5" y1="2.18557e-08" x2="760.5" y2="1080" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line x1="840.5" y1="2.18557e-08" x2="840.5" y2="1080" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line x1="920.5" y1="2.18557e-08" x2="920.5" y2="1080" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line x1="1000.5" y1="2.18557e-08" x2="1000.5" y2="1080" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line x1="1080.5" y1="2.18557e-08" x2="1080.5" y2="1080" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line x1="1160.5" y1="2.18557e-08" x2="1160.5" y2="1080" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line y1="83.5" x2="1440" y2="83.5" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line y1="163.5" x2="1440" y2="163.5" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line y1="243.5" x2="1440" y2="243.5" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line y1="323.5" x2="1440" y2="323.5" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line y1="403.5" x2="1440" y2="403.5" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line y1="483.5" x2="1440" y2="483.5" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line y1="563.5" x2="1440" y2="563.5" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line y1="643.5" x2="1440" y2="643.5" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line y1="723.5" x2="1440" y2="723.5" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line y1="803.5" x2="1440" y2="803.5" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line y1="883.5" x2="1440" y2="883.5" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+<line y1="963.5" x2="1440" y2="963.5" stroke="#919EAB" stroke-opacity="0.24" stroke-dasharray="3 3"/>
+</g>
+<defs>
+<radialGradient id="paint0_radial_4173_6268" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(720 540) scale(600 420.336)">
+<stop/>
+<stop offset="1" stop-opacity="0.08"/>
+</radialGradient>
+</defs>
+</svg>
