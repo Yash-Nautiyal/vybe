@@ -29,6 +29,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     on<ReelsControllerReady>(_onControllerReady);
     on<ReelsSnackbarDismissed>(_onSnackbarDismissed);
     on<ReelsScrollHandled>(_onScrollHandled);
+    on<ReelsVideoRetryRequested>(_onVideoRetryRequested);
   }
 
   final GetReels _getReels;
@@ -184,10 +185,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     await _videoManager?.onPageChanged(event.index);
   }
 
-  void _onPlaybackPaused(
-    ReelsPlaybackPaused event,
-    Emitter<ReelsState> emit,
-  ) {
+  void _onPlaybackPaused(ReelsPlaybackPaused event, Emitter<ReelsState> emit) {
     _videoManager?.pauseAll();
   }
 
@@ -198,10 +196,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     await _videoManager?.onPageChanged(event.index);
   }
 
-  void _onMemoryWarning(
-    ReelsMemoryWarning event,
-    Emitter<ReelsState> emit,
-  ) {
+  void _onMemoryWarning(ReelsMemoryWarning event, Emitter<ReelsState> emit) {
     _videoManager?.onMemoryWarning();
   }
 
@@ -221,6 +216,26 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
 
   void _onScrollHandled(ReelsScrollHandled event, Emitter<ReelsState> emit) {
     emit(state.copyWith(clearScrollToPage: true));
+  }
+
+  Future<void> _onVideoRetryRequested(
+    ReelsVideoRetryRequested event,
+    Emitter<ReelsState> emit,
+  ) async {
+    try {
+      await _videoManager?.retryVideo(event.index);
+      if (!isClosed) {
+        emit(state.copyWith(controllerVersion: state.controllerVersion + 1));
+      }
+    } catch (_) {
+      if (!isClosed) {
+        emit(
+          state.copyWith(
+            snackbarMessage: 'Retry failed. Swipe to try another reel.',
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _attachPlayback(List<Video> videos) async {
@@ -252,6 +267,9 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
       videos: videos,
       cacheDataSource: _cacheDataSource,
       onControllerReady: (_) {
+        if (!isClosed) add(const ReelsControllerReady());
+      },
+      onPlaybackStateChanged: (_) {
         if (!isClosed) add(const ReelsControllerReady());
       },
     );

@@ -1,14 +1,25 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:vybe/core/error/failures.dart';
 import 'package:vybe/core/theme/app_pallete.dart';
 import 'package:vybe/features/reels/domain/entities/video.dart';
 
 class ReelItem extends StatelessWidget {
-  const ReelItem({super.key, required this.video, this.controller});
+  const ReelItem({
+    super.key,
+    required this.video,
+    this.controller,
+    this.failure,
+    this.isBuffering = false,
+    this.onRetry,
+  });
 
   final Video video;
   final VideoPlayerController? controller;
+  final AppFailure? failure;
+  final bool isBuffering;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -18,9 +29,13 @@ class ReelItem extends StatelessWidget {
         _VideoBackground(
           controller: controller,
           thumbnailUrl: video.thumbnailUrl,
+          showLoading: failure == null,
         ),
+        if (failure != null)
+          _VideoErrorOverlay(failure: failure!, onRetry: onRetry),
         const _BottomGradient(),
         _ReelOverlay(video: video),
+        if (isBuffering && failure == null) const _BufferingBanner(),
       ],
     );
   }
@@ -30,10 +45,12 @@ class _VideoBackground extends StatefulWidget {
   const _VideoBackground({
     required this.controller,
     required this.thumbnailUrl,
+    required this.showLoading,
   });
 
   final VideoPlayerController? controller;
   final String thumbnailUrl;
+  final bool showLoading;
 
   @override
   State<_VideoBackground> createState() => _VideoBackgroundState();
@@ -94,7 +111,7 @@ class _VideoBackgroundState extends State<_VideoBackground> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (controller != null && _isInitialized)
+          if (controller != null && _isInitialized && !controller.value.hasError)
             SizedBox.expand(
               child: FittedBox(
                 fit: BoxFit.cover,
@@ -116,11 +133,109 @@ class _VideoBackgroundState extends State<_VideoBackground> {
               errorWidget: (context, url, error) => const SizedBox.shrink(),
             ),
           ),
-          if (!_isInitialized)
+          if (widget.showLoading && !_isInitialized)
             const Center(
               child: CircularProgressIndicator(color: AppPallete.white),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _VideoErrorOverlay extends StatelessWidget {
+  const _VideoErrorOverlay({required this.failure, this.onRetry});
+
+  final AppFailure failure;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        IgnorePointer(
+          child: ColoredBox(
+            color: Colors.black.withValues(alpha: 0.65),
+          ),
+        ),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: AppPallete.white,
+                  size: 48,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  failure.message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppPallete.white,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: onRetry,
+                  child: const Text('Tap to Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BufferingBanner extends StatelessWidget {
+  const _BufferingBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: SafeArea(
+          minimum: const EdgeInsets.only(bottom: 96),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppPallete.white,
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'Reconnecting...',
+                    style: TextStyle(
+                      color: AppPallete.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -188,9 +303,7 @@ class _VideoInfo extends StatelessWidget {
             CircleAvatar(
               radius: 18,
               backgroundColor: AppPallete.grey700,
-              backgroundImage: CachedNetworkImageProvider(
-                video.userProfilePic,
-              ),
+              backgroundImage: CachedNetworkImageProvider(video.userProfilePic),
             ),
             const SizedBox(width: 10),
             Text(

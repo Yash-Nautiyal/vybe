@@ -3,7 +3,7 @@ import 'package:vybe/features/reels/domain/repositories/video_cache_repository.d
 
 class VideoCacheRepositoryImpl implements VideoCacheRepository {
   VideoCacheRepositoryImpl({VideoCacheManager? cacheManager})
-      : _cacheManager = cacheManager ?? VideoCacheManager();
+    : _cacheManager = cacheManager ?? VideoCacheManager();
 
   final VideoCacheManager _cacheManager;
 

@@ -61,3 +61,12 @@ final class ReelsSnackbarDismissed extends ReelsEvent {
 final class ReelsScrollHandled extends ReelsEvent {
   const ReelsScrollHandled();
 }
+
+final class ReelsVideoRetryRequested extends ReelsEvent {
+  const ReelsVideoRetryRequested(this.index);
+
+  final int index;
+
+  @override
+  List<Object?> get props => [index];
+}

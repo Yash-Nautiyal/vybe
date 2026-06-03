@@ -94,9 +94,9 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
         }
 
         if (state.snackbarMessage != null && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.snackbarMessage!)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.snackbarMessage!)));
           context.read<ReelsBloc>().add(const ReelsSnackbarDismissed());
         }
       },
@@ -130,7 +130,8 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
                             label: 'Reseed DB',
                             loadingLabel: 'Reseeding',
                             icon: Icons.refresh,
-                            isLoading: state.isReseeding || state.isClearingCache,
+                            isLoading:
+                                state.isReseeding || state.isClearingCache,
                             onPressed: () {
                               context.read<ReelsBloc>().add(
                                 const ReelsReseedRequested(),
@@ -142,7 +143,8 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
                             label: 'Clear Cache',
                             loadingLabel: 'Clearing',
                             icon: Icons.delete_outline,
-                            isLoading: state.isClearingCache || state.isReseeding,
+                            isLoading:
+                                state.isClearingCache || state.isReseeding,
                             onPressed: () {
                               final index =
                                   _pageController.hasClients
@@ -218,6 +220,11 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
         return ReelItem(
           video: state.videos[index],
           controller: videoManager?.controllerAt(index),
+          failure: videoManager?.failureAt(index),
+          isBuffering: videoManager?.isBufferingAt(index) ?? false,
+          onRetry: () {
+            context.read<ReelsBloc>().add(ReelsVideoRetryRequested(index));
+          },
         );
       },
     );

@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:video_player/video_player.dart';
+import 'package:vybe/core/error/exception.dart' as app_exc;
+import 'package:vybe/core/error/failures.dart';
 import 'package:vybe/features/reels/data/datasources/video_cache_datasource.dart';
 import 'package:vybe/features/reels/domain/entities/video.dart';
 
@@ -12,36 +16,57 @@ class ReelsVideoManager {
     required List<Video> videos,
     required VideoCacheDataSource cacheDataSource,
     this.onControllerReady,
+    this.onPlaybackStateChanged,
   }) : _videos = videos,
        _cacheDataSource = cacheDataSource;
 
   final List<Video> _videos;
   final VideoCacheDataSource _cacheDataSource;
   final void Function(int index)? onControllerReady;
+  final void Function(int index)? onPlaybackStateChanged;
 
   final Map<int, VideoPlayerController> _controllers = {};
+  final Map<int, AppFailure> _errors = {};
+  final Set<int> _bufferingIndices = {};
   final Set<int> _warmingIndices = {};
+  final Set<int> _initializingIndices = {};
+  final Map<int, VoidCallback> _bufferingListeners = {};
+  final Map<int, Timer> _bufferingBannerTimers = {};
+  final Map<int, Timer> _bufferingTimeoutTimers = {};
+
   int _currentIndex = 0;
+
+  static const _initTimeout = Duration(seconds: 10);
+  static const _bufferingBannerDelay = Duration(seconds: 8);
+  static const _bufferingTimeoutDelay = Duration(seconds: 30);
+
+  // ─────────────────────────────────────────
+  // MARK: Public API
+  // ─────────────────────────────────────────
 
   VideoPlayerController? controllerAt(int index) => _controllers[index];
 
-  /// Launch: video 0 gets full bandwidth, then background preload.
+  AppFailure? failureAt(int index) => _errors[index];
+
+  bool isBufferingAt(int index) => _bufferingIndices.contains(index);
+
   Future<void> start() async {
     if (_videos.isEmpty) return;
 
     await _ensureController(0);
-    await _play(0);
+    if (_errors[0] == null) {
+      await _play(0);
+    }
 
-    _ensureController(1);
+    unawaited(_ensureController(1));
     _warmCache(2);
     _warmCache(3);
   }
 
-  /// Scroll: parallel init for N±1, disk-only warm for N+2/+3.
   Future<void> onPageChanged(int index) async {
     if (index < 0 || index >= _videos.length) return;
 
-    _controllers[_currentIndex]?.pause();
+    _safePause(_controllers[_currentIndex]);
     _currentIndex = index;
 
     final tasks = <Future<void>>[];
@@ -52,17 +77,44 @@ class ReelsVideoManager {
     if (index + 1 < _videos.length) {
       tasks.add(_ensureController(index + 1));
     }
-    await Future.wait(tasks);
+    await Future.wait(
+      tasks.map((task) => task.catchError((Object _, StackTrace __) {})),
+    );
 
-    await _play(index);
+    if (_errors[index] == null) {
+      await _play(index);
+    }
     _warmCache(index + 2);
     _warmCache(index + 3);
     _disposeControllersOutsideWindow(index);
   }
 
+  /// Clears error state, evicts cache, and re-attempts init for [index].
+  Future<void> retryVideo(int index) async {
+    if (index < 0 || index >= _videos.length) return;
+
+    _errors.remove(index);
+    _clearBufferingState(index);
+    onPlaybackStateChanged?.call(index);
+
+    final url = _videos[index].videoUrl;
+    await _cacheDataSource.removeVideo(url);
+
+    final existing = _controllers.remove(index);
+    _detachBufferingWatchdog(index);
+    await existing?.dispose();
+
+    await _ensureController(index);
+
+    if (index == _currentIndex && _errors[index] == null) {
+      await _play(index);
+    }
+    onPlaybackStateChanged?.call(index);
+  }
+
   void pauseAll() {
     for (final controller in _controllers.values) {
-      controller.pause();
+      _safePause(controller);
     }
   }
 
@@ -72,30 +124,105 @@ class ReelsVideoManager {
   }
 
   void dispose() {
+    for (final timer in _bufferingBannerTimers.values) {
+      timer.cancel();
+    }
+    for (final timer in _bufferingTimeoutTimers.values) {
+      timer.cancel();
+    }
+    _bufferingBannerTimers.clear();
+    _bufferingTimeoutTimers.clear();
+
+    for (final index in _bufferingListeners.keys.toList()) {
+      _detachBufferingWatchdog(index);
+    }
+
     for (final controller in _controllers.values) {
       controller.dispose();
     }
     _controllers.clear();
+    _errors.clear();
+    _bufferingIndices.clear();
     _warmingIndices.clear();
+    _initializingIndices.clear();
   }
+
+  // ─────────────────────────────────────────
+  // MARK: Controller Lifecycle
+  // ─────────────────────────────────────────
 
   Future<void> _ensureController(int index) async {
     if (index < 0 || index >= _videos.length) return;
     if (_controllers.containsKey(index)) return;
+    if (_initializingIndices.contains(index)) return;
 
-    final video = _videos[index];
-    final file = await _cacheDataSource.getVideoFile(video.videoUrl);
-    final controller = VideoPlayerController.file(file);
+    _initializingIndices.add(index);
+    _errors.remove(index);
 
     try {
-      await controller.initialize();
-      await controller.setLooping(true);
-      _controllers[index] = controller;
-      onControllerReady?.call(index);
-    } catch (error, stackTrace) {
-      await controller.dispose();
-      debugPrint('Failed to init video at $index: $error');
-      debugPrint('$stackTrace');
+      final url = _videos[index].videoUrl;
+
+      try {
+        await _initControllerAt(index, url);
+      } on app_exc.NetworkException {
+        _errors[index] = const NetworkFailure();
+        onPlaybackStateChanged?.call(index);
+      } on app_exc.TimeoutException {
+        _errors[index] = const TimeoutFailure();
+        onPlaybackStateChanged?.call(index);
+      } catch (error, stackTrace) {
+        debugPrint('Unexpected error loading video at $index: $error');
+        debugPrint('$stackTrace');
+        _errors[index] = const CacheFailure('Video unplayable.');
+        onPlaybackStateChanged?.call(index);
+      }
+    } finally {
+      _initializingIndices.remove(index);
+    }
+  }
+
+  Future<void> _initControllerAt(int index, String url) async {
+    var file = await _cacheDataSource.getVideoFile(url);
+    var decoderRetried = false;
+
+    while (true) {
+      final controller = VideoPlayerController.file(file);
+
+      try {
+        await controller
+            .initialize()
+            .timeout(
+              _initTimeout,
+              onTimeout: () => throw app_exc.TimeoutException(),
+            );
+        await controller.setLooping(true);
+        _controllers[index] = controller;
+        _attachBufferingWatchdog(index, controller);
+        onControllerReady?.call(index);
+        onPlaybackStateChanged?.call(index);
+        return;
+      } catch (error, stackTrace) {
+        await controller.dispose();
+
+        if (_isDecoderError(error) && !decoderRetried) {
+          decoderRetried = true;
+          await _cacheDataSource.removeVideo(url);
+          file = await _cacheDataSource.getVideoFile(url);
+          continue;
+        }
+
+        if (error is app_exc.TimeoutException) {
+          _errors[index] = const TimeoutFailure();
+        } else if (_isDecoderError(error) || decoderRetried) {
+          _errors[index] = const CacheFailure('Video unplayable.');
+        } else {
+          _errors[index] = const CacheFailure('Video unplayable.');
+        }
+        debugPrint('Failed to init video at $index: $error');
+        debugPrint('$stackTrace');
+        onPlaybackStateChanged?.call(index);
+        return;
+      }
     }
   }
 
@@ -109,9 +236,8 @@ class ReelsVideoManager {
     () async {
       try {
         await _cacheDataSource.getVideoFile(url);
-      } catch (error, stackTrace) {
-        debugPrint('Warm cache failed at $index: $error');
-        debugPrint('$stackTrace');
+      } catch (_) {
+        // Background warm-cache failures are intentionally silent.
       } finally {
         _warmingIndices.remove(index);
       }
@@ -120,17 +246,115 @@ class ReelsVideoManager {
 
   Future<void> _play(int index) async {
     final controller = _controllers[index];
-    if (controller == null || !controller.value.isInitialized) return;
-    await controller.play();
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        controller.value.hasError) {
+      return;
+    }
+
+    try {
+      await controller.play();
+    } catch (error, stackTrace) {
+      debugPrint('Failed to play video at $index: $error');
+      debugPrint('$stackTrace');
+    }
   }
 
   void _disposeControllersOutsideWindow(int index) {
-    final keysToRemove = _controllers.keys
-        .where((key) => (key - index).abs() > 1)
-        .toList();
+    final keysToRemove =
+        _controllers.keys.where((key) => (key - index).abs() > 1).toList();
 
     for (final key in keysToRemove) {
+      _detachBufferingWatchdog(key);
       _controllers.remove(key)?.dispose();
+      _errors.remove(key);
     }
+  }
+
+  // ─────────────────────────────────────────
+  // MARK: Buffering Watchdog
+  // ─────────────────────────────────────────
+
+  void _attachBufferingWatchdog(int index, VideoPlayerController controller) {
+    _detachBufferingWatchdog(index);
+
+    void listener() {
+      if (!controller.value.isInitialized) return;
+
+      if (controller.value.isBuffering) {
+        _scheduleBufferingWatchdog(index, controller);
+      } else {
+        _clearBufferingState(index);
+        onPlaybackStateChanged?.call(index);
+      }
+    }
+
+    _bufferingListeners[index] = listener;
+    controller.addListener(listener);
+  }
+
+  void _scheduleBufferingWatchdog(
+    int index,
+    VideoPlayerController controller,
+  ) {
+    if (_bufferingBannerTimers.containsKey(index)) return;
+
+    _bufferingBannerTimers[index] = Timer(_bufferingBannerDelay, () {
+      _bufferingBannerTimers.remove(index);
+      final active = _controllers[index];
+      if (active == null || !active.value.isBuffering) return;
+
+      _bufferingIndices.add(index);
+      onPlaybackStateChanged?.call(index);
+
+      _bufferingTimeoutTimers[index] = Timer(
+        _bufferingTimeoutDelay - _bufferingBannerDelay,
+        () {
+          _bufferingTimeoutTimers.remove(index);
+          final current = _controllers[index];
+          if (current == null || !current.value.isBuffering) return;
+
+          _safePause(current);
+          _clearBufferingState(index);
+          _errors[index] = const TimeoutFailure();
+          onPlaybackStateChanged?.call(index);
+        },
+      );
+    });
+  }
+
+  void _clearBufferingState(int index) {
+    _bufferingBannerTimers.remove(index)?.cancel();
+    _bufferingTimeoutTimers.remove(index)?.cancel();
+    _bufferingIndices.remove(index);
+  }
+
+  void _detachBufferingWatchdog(int index) {
+    final listener = _bufferingListeners.remove(index);
+    final controller = _controllers[index];
+    if (listener != null && controller != null) {
+      controller.removeListener(listener);
+    }
+    _clearBufferingState(index);
+  }
+
+  // ─────────────────────────────────────────
+  // MARK: Utilities
+  // ─────────────────────────────────────────
+
+  void _safePause(VideoPlayerController? controller) {
+    if (controller == null || !controller.value.isInitialized) return;
+
+    try {
+      controller.pause();
+    } catch (error, stackTrace) {
+      debugPrint('Failed to pause controller: $error');
+      debugPrint('$stackTrace');
+    }
+  }
+
+  bool _isDecoderError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('-1010') || message.contains('decoder');
   }
 }
