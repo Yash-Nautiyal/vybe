@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:vybe/core/theme/app_theme.dart';
 import 'package:vybe/features/reels/presentation/pages/reels_page.dart';
 import 'package:vybe/firebase_options.dart';
-import 'package:vybe/seeder.dart';
+import 'package:vybe/seed/seeder.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,4 +1,4 @@
-import 'package:vybe/seeder.dart';
+import 'package:vybe/seed/seeder.dart';
 
 abstract class SeedLocalDataSource {
   Future<void> reseedVideos();
