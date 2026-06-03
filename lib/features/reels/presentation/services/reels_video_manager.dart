@@ -199,7 +199,6 @@ class ReelsVideoManager {
         _controllers[index] = controller;
         _attachBufferingWatchdog(index, controller);
         onControllerReady?.call(index);
-        onPlaybackStateChanged?.call(index);
         return;
       } catch (error, stackTrace) {
         await controller.dispose();
@@ -284,8 +283,11 @@ class ReelsVideoManager {
       if (controller.value.isBuffering) {
         _scheduleBufferingWatchdog(index, controller);
       } else {
+        final hadVisibleBuffering = _bufferingIndices.contains(index);
         _clearBufferingState(index);
-        onPlaybackStateChanged?.call(index);
+        if (hadVisibleBuffering) {
+          onPlaybackStateChanged?.call(index);
+        }
       }
     }
 

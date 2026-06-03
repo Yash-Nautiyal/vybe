@@ -13,7 +13,9 @@ class VideoModel {
     required this.description,
     required this.likes,
     required this.comments,
+    required this.starredCount,
     this.liked = false,
+    this.starred = false,
     this.createdAt,
   });
 
@@ -26,7 +28,9 @@ class VideoModel {
   final String description;
   final int likes;
   final int comments;
+  final int starredCount;
   final bool liked;
+  final bool starred;
   final DateTime? createdAt;
 
   factory VideoModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -42,7 +46,9 @@ class VideoModel {
       description: data['description'] as String? ?? '',
       likes: (data['likes'] as num?)?.toInt() ?? 0,
       comments: (data['comments'] as num?)?.toInt() ?? 0,
+      starredCount: (data['starredCount'] as num?)?.toInt() ?? 0,
       liked: data['liked'] as bool? ?? false,
+      starred: data['starred'] as bool? ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }
@@ -58,7 +64,9 @@ class VideoModel {
       description: description,
       likes: likes,
       comments: comments,
+      starredCount: starredCount,
       liked: liked,
+      starred: starred,
       createdAt: createdAt,
     );
   }

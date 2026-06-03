@@ -22,6 +22,7 @@ class AppIcons {
   static const String chatLinearIcon = '$_arrowPath/ic-solar-chat-line-linear.svg';
   static const String heartLinearIcon = '$_arrowPath/ic-solar-heart-linear.svg';
   static const String shareLinearIcon = '$_arrowPath/ic-solar-share-linear.svg';
+  static const String starLinearIcon = '$_arrowPath/ic-solar-star-linear.svg';
 
   // --------------- SOLID ICONS ---------------
   static const String calenderDuoIcon =

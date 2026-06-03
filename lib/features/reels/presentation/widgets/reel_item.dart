@@ -7,7 +7,9 @@ import 'package:vybe/features/reels/domain/entities/video.dart';
 import 'error/video_error_overlay.dart';
 import 'overlay/reel_overlay.dart';
 
-class ReelItem extends StatelessWidget {
+// MARK: Reel Item
+
+class ReelItem extends StatefulWidget {
   const ReelItem({
     super.key,
     required this.video,
@@ -24,24 +26,58 @@ class ReelItem extends StatelessWidget {
   final VoidCallback? onRetry;
 
   @override
+  State<ReelItem> createState() => _ReelItemState();
+}
+
+class _ReelItemState extends State<ReelItem> {
+  final ValueNotifier<bool> _descExpandedNotifier = ValueNotifier(false);
+
+  @override
+  void dispose() {
+    _descExpandedNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
       children: [
         _VideoBackground(
-          controller: controller,
-          thumbnailUrl: video.thumbnailUrl,
-          showLoading: failure == null,
+          controller: widget.controller,
+          thumbnailUrl: widget.video.thumbnailUrl,
+          showLoading: widget.failure == null,
         ),
-        if (failure != null)
-          VideoErrorOverlay(failure: failure!, onRetry: onRetry),
+        if (widget.failure != null)
+          VideoErrorOverlay(failure: widget.failure!, onRetry: widget.onRetry),
         const _BottomGradient(),
-        ReelOverlay(video: video),
-        if (isBuffering && failure == null) const _BufferingBanner(),
+
+        ValueListenableBuilder<bool>(
+          valueListenable: _descExpandedNotifier,
+          builder:
+              (context, expanded, _) => AnimatedOpacity(
+                opacity: expanded ? 0.45 : 0.0,
+                duration: const Duration(milliseconds: 340),
+                curve: Curves.easeInOutCubic,
+                child: const ColoredBox(
+                  color: Colors.black,
+                  child: SizedBox.expand(),
+                ),
+              ),
+        ),
+
+        ReelOverlay(
+          video: widget.video,
+          expandedNotifier: _descExpandedNotifier,
+        ),
+        if (widget.isBuffering && widget.failure == null)
+          const _BufferingBanner(),
       ],
     );
   }
 }
+
+// MARK: Video Background
 
 class _VideoBackground extends StatefulWidget {
   const _VideoBackground({
@@ -146,6 +182,8 @@ class _VideoBackgroundState extends State<_VideoBackground> {
   }
 }
 
+// MARK: Buffering Banner
+
 class _BufferingBanner extends StatelessWidget {
   const _BufferingBanner();
 
@@ -188,6 +226,8 @@ class _BufferingBanner extends StatelessWidget {
     );
   }
 }
+
+// MARK: Bottom Gradient
 
 class _BottomGradient extends StatelessWidget {
   const _BottomGradient();

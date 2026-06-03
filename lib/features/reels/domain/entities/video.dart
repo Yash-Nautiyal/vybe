@@ -1,4 +1,3 @@
-
 class Video {
   const Video({
     required this.id,
@@ -10,7 +9,9 @@ class Video {
     required this.description,
     required this.likes,
     required this.comments,
+    required this.starredCount,
     this.liked = false,
+    this.starred = false,
     this.createdAt,
   });
 
@@ -23,6 +24,8 @@ class Video {
   final String description;
   final int likes;
   final int comments;
+  final int starredCount;
   final bool liked;
+  final bool starred;
   final DateTime? createdAt;
 }

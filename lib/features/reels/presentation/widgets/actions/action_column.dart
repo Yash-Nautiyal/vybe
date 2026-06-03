@@ -9,12 +9,15 @@ class ActionColumn extends StatelessWidget {
     required this.likes,
     required this.comments,
     required this.liked,
+    required this.starred,
+    required this.starredCount,
   });
 
   final int likes;
   final int comments;
   final bool liked;
-
+  final bool starred;
+  final int starredCount;
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -24,6 +27,11 @@ class ActionColumn extends StatelessWidget {
         ActionButton.comment(label: formatCount(comments)),
         const SizedBox(height: 20),
         const ActionButton.share(label: 'Share'),
+        const SizedBox(height: 20),
+        ActionButton.star(
+          starred: starred,
+          label: starredCount > 0 ? formatCount(starredCount) : '',
+        ),
       ],
     );
   }
