@@ -2,8 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:vybe/core/error/failures.dart';
-import 'package:vybe/core/theme/app_pallete.dart';
 import 'package:vybe/features/reels/domain/entities/video.dart';
+
+import 'error/video_error_overlay.dart';
+import 'overlay/reel_overlay.dart';
 
 class ReelItem extends StatelessWidget {
   const ReelItem({
@@ -32,9 +34,9 @@ class ReelItem extends StatelessWidget {
           showLoading: failure == null,
         ),
         if (failure != null)
-          _VideoErrorOverlay(failure: failure!, onRetry: onRetry),
+          VideoErrorOverlay(failure: failure!, onRetry: onRetry),
         const _BottomGradient(),
-        _ReelOverlay(video: video),
+        ReelOverlay(video: video),
         if (isBuffering && failure == null) const _BufferingBanner(),
       ],
     );
@@ -104,14 +106,17 @@ class _VideoBackgroundState extends State<_VideoBackground> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final controller = widget.controller;
 
     return ColoredBox(
-      color: AppPallete.black,
+      color: theme.scaffoldBackgroundColor,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (controller != null && _isInitialized && !controller.value.hasError)
+          if (controller != null &&
+              _isInitialized &&
+              !controller.value.hasError)
             SizedBox.expand(
               child: FittedBox(
                 fit: BoxFit.cover,
@@ -134,62 +139,9 @@ class _VideoBackgroundState extends State<_VideoBackground> {
             ),
           ),
           if (widget.showLoading && !_isInitialized)
-            const Center(
-              child: CircularProgressIndicator(color: AppPallete.white),
-            ),
+            const Center(child: CircularProgressIndicator()),
         ],
       ),
-    );
-  }
-}
-
-class _VideoErrorOverlay extends StatelessWidget {
-  const _VideoErrorOverlay({required this.failure, this.onRetry});
-
-  final AppFailure failure;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        IgnorePointer(
-          child: ColoredBox(
-            color: Colors.black.withValues(alpha: 0.65),
-          ),
-        ),
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  color: AppPallete.white,
-                  size: 48,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  failure.message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppPallete.white,
-                    fontSize: 15,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: onRetry,
-                  child: const Text('Tap to Retry'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -199,6 +151,9 @@ class _BufferingBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return IgnorePointer(
       child: Align(
         alignment: Alignment.bottomCenter,
@@ -206,11 +161,11 @@ class _BufferingBanner extends StatelessWidget {
           minimum: const EdgeInsets.only(bottom: 96),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.55),
+              color: colors.surfaceContainer.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -219,18 +174,11 @@ class _BufferingBanner extends StatelessWidget {
                     height: 14,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppPallete.white,
+                      color: colors.onSurface,
                     ),
                   ),
-                  SizedBox(width: 10),
-                  Text(
-                    'Reconnecting...',
-                    style: TextStyle(
-                      color: AppPallete.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  const SizedBox(width: 10),
+                  Text('Reconnecting...', style: theme.textTheme.labelMedium),
                 ],
               ),
             ),
@@ -246,143 +194,21 @@ class _BottomGradient extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const DecoratedBox(
+    final shadow = Theme.of(context).colorScheme.shadow;
+
+    return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Colors.black54, Colors.black87],
-          stops: [0.5, 0.75, 1.0],
+          colors: [
+            Colors.transparent,
+            shadow.withValues(alpha: 0.54),
+            shadow.withValues(alpha: 0.87),
+          ],
+          stops: const [0.5, 0.75, 1.0],
         ),
       ),
-    );
-  }
-}
-
-class _ReelOverlay extends StatelessWidget {
-  const _ReelOverlay({required this.video});
-
-  final Video video;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            const Spacer(),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(child: _VideoInfo(video: video)),
-                const SizedBox(width: 16),
-                _SideActions(likes: video.likes, comments: video.comments),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _VideoInfo extends StatelessWidget {
-  const _VideoInfo({required this.video});
-
-  final Video video;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: AppPallete.grey700,
-              backgroundImage: CachedNetworkImageProvider(video.userProfilePic),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              video.username,
-              style: const TextStyle(
-                color: AppPallete.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Text(
-          video.description,
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: AppPallete.white,
-            fontSize: 14,
-            height: 1.4,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SideActions extends StatelessWidget {
-  const _SideActions({required this.likes, required this.comments});
-
-  final int likes;
-  final int comments;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _ActionButton(icon: Icons.favorite, label: _formatCount(likes)),
-        const SizedBox(height: 20),
-        _ActionButton(icon: Icons.chat_bubble, label: _formatCount(comments)),
-        const SizedBox(height: 20),
-        const _ActionButton(icon: Icons.share, label: 'Share'),
-      ],
-    );
-  }
-
-  String _formatCount(int value) {
-    if (value >= 1000000) {
-      return '${(value / 1000000).toStringAsFixed(1)}M';
-    }
-    if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(1)}K';
-    }
-    return value.toString();
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(icon, color: AppPallete.white, size: 30),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppPallete.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
     );
   }
 }

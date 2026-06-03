@@ -1,23 +1,29 @@
 class AppIcons {
-  AppIcons._(); // Private constructor prevents instantiation
+  AppIcons._();
 
-  static const String _basePath = 'assets/icons';
+  // --------------- ICON PATHS ---------------
+
+  // static const String _basePath = 'assets/icons';
   static const String _arrowPath = 'assets/icons/arrow';
   static const String _solidPath = 'assets/icons/solid';
   static const String _illustrationsPath = 'assets/illustrations';
   static const String _navPath = 'assets/icons/nav';
 
-  // illustrations
+  // --------------- ILLUSTRATIONS ---------------
   static const String confirmIllustration =
       '$_illustrationsPath/ic-email-inbox.svg';
   static const String forgotPasswordIllustration =
       '$_illustrationsPath/ic-password.svg';
 
-  //arrow icons
+  // --------------- ARROW ICONS ---------------
   static const String checkRoundedIcon = '$_arrowPath/ic-solid-check-one.svg';
   static const String redirectIcon = '$_arrowPath/ic-redirect.svg';
+  static const String restartBoldIcon = '$_arrowPath/ic-solar_restart-bold';
+  static const String chatLinearIcon = '$_arrowPath/ic-solar-chat-line-linear.svg';
+  static const String heartLinearIcon = '$_arrowPath/ic-solar-heart-linear.svg';
+  static const String shareLinearIcon = '$_arrowPath/ic-solar-share-linear.svg';
 
-  //solid icons
+  // --------------- SOLID ICONS ---------------
   static const String calenderDuoIcon =
       '$_solidPath/ic-solar-calendar-mark-bold-duotone.svg';
   static const String listBoldIcon = '$_solidPath/ic-solar-list.svg';
@@ -25,15 +31,14 @@ class AppIcons {
   static const String penBoldIcon = '$_solidPath/ic-solar_pen-bold.svg';
   static const String trashBoldIcon = '$_solidPath/ic-solar_trash-bold.svg';
 
-  //nav icons
+  // --------------- NAV ICONS ---------------
   static const String homeIcon = '$_navPath/ic-home.svg';
   static const String listBoldDuotoneIcon =
       '$_navPath/ic-list-bold-duotone.svg';
 
-  //Common Icons
-  static const String searchFillIcon = '$_basePath/ic-eva_search-fill.svg';
-  static const String calendarIcon = '$_basePath/ic-calender.svg';
-  static const String settingIcon = '$_basePath/ic-settings.svg';
-  static const String sunIcon = '$_basePath/ic-sun.svg';
-  static const String moonIcon = '$_basePath/ic-moon.svg';
+  // --------------- COMMON ICONS ---------------
+  static const String searchFillIcon = '$_solidPath/ic-eva_search-fill.svg';
+  static const String calendarIcon = '$_solidPath/ic-calender.svg';
+  static const String settingIcon = '$_solidPath/ic-settings.svg';
+  static const String alertIcon = '$_solidPath/ic-alert.svg';
 }

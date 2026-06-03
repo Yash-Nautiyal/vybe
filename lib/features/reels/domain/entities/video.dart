@@ -10,6 +10,7 @@ class Video {
     required this.description,
     required this.likes,
     required this.comments,
+    this.liked = false,
     this.createdAt,
   });
 
@@ -22,5 +23,6 @@ class Video {
   final String description;
   final int likes;
   final int comments;
+  final bool liked;
   final DateTime? createdAt;
 }

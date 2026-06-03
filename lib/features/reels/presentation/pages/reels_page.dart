@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:vybe/core/theme/app_pallete.dart';
 import 'package:vybe/core/widgets/loader/custom_loader.dart';
-import 'package:vybe/features/reels/presentation/bloc/reels_bloc.dart';
-import 'package:vybe/features/reels/presentation/bloc/reels_event.dart';
-import 'package:vybe/features/reels/presentation/bloc/reels_state.dart';
-import 'package:vybe/features/reels/presentation/widgets/reel_item.dart';
-import 'package:vybe/features/reels/reels_injection.dart';
+
+import '../bloc/reels_bloc.dart';
+import '../bloc/reels_event.dart';
+import '../bloc/reels_state.dart';
+import '../widgets/error/error_view.dart';
+import '../widgets/reel_item.dart';
+
+import '../../reels_injection.dart';
+
+import '../widgets/overlay/dev_reel_overlay.dart';
 
 class ReelsPage extends StatelessWidget {
   const ReelsPage({super.key, this.reelsBloc});
 
-  /// Optional override for tests.
   final ReelsBloc? reelsBloc;
 
   @override
@@ -101,7 +104,7 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
         }
       },
       child: Scaffold(
-        backgroundColor: AppPallete.black,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Stack(
           children: [
             BlocBuilder<ReelsBloc, ReelsState>(
@@ -113,63 +116,19 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
                       previous.isClearingCache != current.isClearingCache ||
                       previous.errorMessage != current.errorMessage ||
                       previous.controllerVersion != current.controllerVersion,
-              builder: (context, state) => _buildBody(context, state),
+              builder: (context, state) => _body(context, state),
             ),
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: BlocBuilder<ReelsBloc, ReelsState>(
-                    builder: (context, state) {
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          _DevActionButton(
-                            label: 'Reseed DB',
-                            loadingLabel: 'Reseeding',
-                            icon: Icons.refresh,
-                            isLoading:
-                                state.isReseeding || state.isClearingCache,
-                            onPressed: () {
-                              context.read<ReelsBloc>().add(
-                                const ReelsReseedRequested(),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          _DevActionButton(
-                            label: 'Clear Cache',
-                            loadingLabel: 'Clearing',
-                            icon: Icons.delete_outline,
-                            isLoading:
-                                state.isClearingCache || state.isReseeding,
-                            onPressed: () {
-                              final index =
-                                  _pageController.hasClients
-                                      ? (_pageController.page?.round() ?? 0)
-                                      : 0;
-                              context.read<ReelsBloc>().add(
-                                ReelsClearCacheRequested(restartIndex: index),
-                              );
-                            },
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
+            DevReelOverlay(pageController: _pageController),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, ReelsState state) {
+  Widget _body(BuildContext context, ReelsState state) {
     if (state.showFullScreenLoader) {
+      final textTheme = Theme.of(context).textTheme;
+
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -177,10 +136,7 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
             const CustomLoader(size: 80, gap: 10, borderRadius: 18),
             if (state.isReseeding) ...[
               const SizedBox(height: 16),
-              const Text(
-                'Reseeding Firestore...',
-                style: TextStyle(color: AppPallete.white),
-              ),
+              Text('Reseeding Firestore...', style: textTheme.bodyLarge),
             ],
           ],
         ),
@@ -188,7 +144,7 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
     }
 
     if (state.status == ReelsStatus.failure) {
-      return _ErrorView(
+      return ErrorView(
         message: state.errorMessage ?? 'Failed to load reels',
         onRetry:
             () => context.read<ReelsBloc>().add(const ReelsLoadRequested()),
@@ -196,7 +152,7 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
     }
 
     if (state.status == ReelsStatus.loaded && state.videos.isEmpty) {
-      return _ErrorView(
+      return ErrorView(
         message: 'No videos found in Firestore.',
         onRetry:
             () => context.read<ReelsBloc>().add(const ReelsLoadRequested()),
@@ -227,103 +183,6 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
           },
         );
       },
-    );
-  }
-}
-
-class _DevActionButton extends StatelessWidget {
-  const _DevActionButton({
-    required this.label,
-    required this.loadingLabel,
-    required this.icon,
-    required this.isLoading,
-    required this.onPressed,
-  });
-
-  final String label;
-  final String loadingLabel;
-  final IconData icon;
-  final bool isLoading;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppPallete.grey800.withValues(alpha: 0.85),
-      borderRadius: BorderRadius.circular(24),
-      child: InkWell(
-        onTap: isLoading ? null : onPressed,
-        borderRadius: BorderRadius.circular(24),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isLoading)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppPallete.white,
-                  ),
-                )
-              else
-                Icon(icon, color: AppPallete.white, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                isLoading ? loadingLabel : label,
-                style: const TextStyle(
-                  color: AppPallete.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              color: AppPallete.errorMain,
-              size: 48,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Could not load reels',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(color: AppPallete.white),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppPallete.grey500),
-            ),
-            const SizedBox(height: 24),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
-        ),
-      ),
     );
   }
 }
