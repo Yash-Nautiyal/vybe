@@ -11,6 +11,8 @@ class ActionColumn extends StatelessWidget {
     required this.liked,
     required this.starred,
     required this.starredCount,
+    this.onLike,
+    this.onStar,
   });
 
   final int likes;
@@ -18,11 +20,18 @@ class ActionColumn extends StatelessWidget {
   final bool liked;
   final bool starred;
   final int starredCount;
+  final VoidCallback? onLike;
+  final VoidCallback? onStar;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        ActionButton.like(liked: liked, label: formatCount(likes)),
+        ActionButton.like(
+          liked: liked,
+          label: formatCount(likes),
+          onClick: onLike,
+        ),
         const SizedBox(height: 20),
         ActionButton.comment(label: formatCount(comments)),
         const SizedBox(height: 20),
@@ -31,6 +40,7 @@ class ActionColumn extends StatelessWidget {
         ActionButton.star(
           starred: starred,
           label: starredCount > 0 ? formatCount(starredCount) : '',
+          onClick: onStar,
         ),
       ],
     );

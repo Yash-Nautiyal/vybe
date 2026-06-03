@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:vybe/core/widgets/dialog/snackbar_dialog.dart';
 import 'package:vybe/core/widgets/loader/custom_loader.dart';
 
 import '../bloc/reels_bloc.dart';
@@ -97,9 +98,15 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
         }
 
         if (state.snackbarMessage != null && context.mounted) {
-          ScaffoldMessenger.of(
+          final snackbarType =
+              state.uiActionType == UIActionsType.error
+                  ? SnackbarType.error
+                  : SnackbarType.success;
+          showAnimatedSnackbar(
             context,
-          ).showSnackBar(SnackBar(content: Text(state.snackbarMessage!)));
+            state.snackbarMessage!,
+            snackbarType,
+          );
           context.read<ReelsBloc>().add(const ReelsSnackbarDismissed());
         }
       },

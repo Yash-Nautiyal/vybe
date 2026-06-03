@@ -47,8 +47,6 @@ class VideoModel {
       likes: (data['likes'] as num?)?.toInt() ?? 0,
       comments: (data['comments'] as num?)?.toInt() ?? 0,
       starredCount: (data['starredCount'] as num?)?.toInt() ?? 0,
-      liked: data['liked'] as bool? ?? false,
-      starred: data['starred'] as bool? ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }

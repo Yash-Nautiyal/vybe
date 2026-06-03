@@ -4,6 +4,8 @@ import 'package:vybe/features/reels/domain/entities/video.dart';
 import 'package:vybe/features/reels/domain/usecases/clear_video_cache.dart';
 import 'package:vybe/features/reels/domain/usecases/get_reels.dart';
 import 'package:vybe/features/reels/domain/usecases/reseed_videos.dart';
+import 'package:vybe/features/reels/domain/usecases/toggle_video_like.dart';
+import 'package:vybe/features/reels/domain/usecases/toggle_video_star.dart';
 import 'package:vybe/features/reels/presentation/bloc/reels_event.dart';
 import 'package:vybe/features/reels/presentation/bloc/reels_state.dart';
 import 'package:vybe/features/reels/presentation/services/reels_video_manager.dart';
@@ -13,10 +15,14 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     required GetReels getReels,
     required ReseedVideos reseedVideos,
     required ClearVideoCache clearVideoCache,
+    required ToggleVideoLike toggleVideoLike,
+    required ToggleVideoStar toggleVideoStar,
     required VideoCacheDataSource cacheDataSource,
   }) : _getReels = getReels,
        _reseedVideos = reseedVideos,
        _clearVideoCache = clearVideoCache,
+       _toggleVideoLike = toggleVideoLike,
+       _toggleVideoStar = toggleVideoStar,
        _cacheDataSource = cacheDataSource,
        super(const ReelsState()) {
     on<ReelsLoadRequested>(_onLoadRequested);
@@ -30,16 +36,22 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     on<ReelsSnackbarDismissed>(_onSnackbarDismissed);
     on<ReelsScrollHandled>(_onScrollHandled);
     on<ReelsVideoRetryRequested>(_onVideoRetryRequested);
+    on<ReelLikeToggled>(_onLikeToggled);
+    on<ReelStarToggled>(_onStarToggled);
   }
 
   final GetReels _getReels;
   final ReseedVideos _reseedVideos;
   final ClearVideoCache _clearVideoCache;
+  final ToggleVideoLike _toggleVideoLike;
+  final ToggleVideoStar _toggleVideoStar;
   final VideoCacheDataSource _cacheDataSource;
 
   ReelsVideoManager? _videoManager;
 
   ReelsVideoManager? get videoManager => _videoManager;
+
+  // MARK: Loading Events
 
   Future<void> _onLoadRequested(
     ReelsLoadRequested event,
@@ -52,6 +64,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
         status: ReelsStatus.loading,
         clearErrorMessage: true,
         clearSnackbarMessage: true,
+        clearUiActionType: true,
         clearScrollToPage: true,
       ),
     );
@@ -78,6 +91,8 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     }
   }
 
+  // MARK: Reseeding Events
+
   Future<void> _onReseedRequested(
     ReelsReseedRequested event,
     Emitter<ReelsState> emit,
@@ -90,6 +105,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
       state.copyWith(
         isReseeding: true,
         clearSnackbarMessage: true,
+        clearUiActionType: true,
         clearScrollToPage: true,
       ),
     );
@@ -101,6 +117,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
           isReseeding: false,
           snackbarMessage:
               'Reseed failed: ${reseedResult.failure?.message ?? 'Unknown error'}',
+          uiActionType: UIActionsType.error,
         ),
       );
       return;
@@ -113,6 +130,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
           isReseeding: false,
           snackbarMessage:
               'Reseed failed: ${clearResult.failure?.message ?? 'Unknown error'}',
+          uiActionType: UIActionsType.error,
         ),
       );
       return;
@@ -128,6 +146,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
           isReseeding: false,
           scrollToPage: 0,
           snackbarMessage: 'Firestore reseeded and feed refreshed.',
+          uiActionType: UIActionsType.success,
           clearErrorMessage: true,
         ),
       );
@@ -143,6 +162,8 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     }
   }
 
+  // MARK: Cache Events
+
   Future<void> _onClearCacheRequested(
     ReelsClearCacheRequested event,
     Emitter<ReelsState> emit,
@@ -153,6 +174,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
       state.copyWith(
         isClearingCache: true,
         clearSnackbarMessage: true,
+        clearUiActionType: true,
         clearScrollToPage: true,
       ),
     );
@@ -164,6 +186,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
         state.copyWith(
           isClearingCache: false,
           snackbarMessage: 'Video cache cleared.',
+          uiActionType: UIActionsType.success,
         ),
       );
       await _restartPlayback(state.videos, index: event.restartIndex);
@@ -173,10 +196,13 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
           isClearingCache: false,
           snackbarMessage:
               'Clear cache failed: ${result.failure?.message ?? 'Unknown error'}',
+          uiActionType: UIActionsType.error,
         ),
       );
     }
   }
+
+  // MARK: Playback
 
   Future<void> _onPageChanged(
     ReelsPageChanged event,
@@ -194,48 +220,6 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     Emitter<ReelsState> emit,
   ) async {
     await _videoManager?.onPageChanged(event.index);
-  }
-
-  void _onMemoryWarning(ReelsMemoryWarning event, Emitter<ReelsState> emit) {
-    _videoManager?.onMemoryWarning();
-  }
-
-  void _onControllerReady(
-    ReelsControllerReady event,
-    Emitter<ReelsState> emit,
-  ) {
-    emit(state.copyWith(controllerVersion: state.controllerVersion + 1));
-  }
-
-  void _onSnackbarDismissed(
-    ReelsSnackbarDismissed event,
-    Emitter<ReelsState> emit,
-  ) {
-    emit(state.copyWith(clearSnackbarMessage: true));
-  }
-
-  void _onScrollHandled(ReelsScrollHandled event, Emitter<ReelsState> emit) {
-    emit(state.copyWith(clearScrollToPage: true));
-  }
-
-  Future<void> _onVideoRetryRequested(
-    ReelsVideoRetryRequested event,
-    Emitter<ReelsState> emit,
-  ) async {
-    try {
-      await _videoManager?.retryVideo(event.index);
-      if (!isClosed) {
-        emit(state.copyWith(controllerVersion: state.controllerVersion + 1));
-      }
-    } catch (_) {
-      if (!isClosed) {
-        emit(
-          state.copyWith(
-            snackbarMessage: 'Retry failed. Swipe to try another reel.',
-          ),
-        );
-      }
-    }
   }
 
   Future<void> _attachPlayback(List<Video> videos) async {
@@ -262,6 +246,128 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     add(const ReelsControllerReady());
   }
 
+  Future<void> _onVideoRetryRequested(
+    ReelsVideoRetryRequested event,
+    Emitter<ReelsState> emit,
+  ) async {
+    try {
+      await _videoManager?.retryVideo(event.index);
+      if (!isClosed) {
+        emit(state.copyWith(controllerVersion: state.controllerVersion + 1));
+      }
+    } catch (_) {
+      if (!isClosed) {
+        emit(
+          state.copyWith(
+            snackbarMessage: 'Retry failed. Swipe to try another reel.',
+            uiActionType: UIActionsType.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _onMemoryWarning(ReelsMemoryWarning event, Emitter<ReelsState> emit) {
+    _videoManager?.onMemoryWarning();
+  }
+
+  void _onControllerReady(
+    ReelsControllerReady event,
+    Emitter<ReelsState> emit,
+  ) {
+    emit(state.copyWith(controllerVersion: state.controllerVersion + 1));
+  }
+
+  void _onSnackbarDismissed(
+    ReelsSnackbarDismissed event,
+    Emitter<ReelsState> emit,
+  ) {
+    emit(state.copyWith(clearSnackbarMessage: true, clearUiActionType: true));
+  }
+
+  // MARK: User Actions Events
+
+  Future<void> _onLikeToggled(
+    ReelLikeToggled event,
+    Emitter<ReelsState> emit,
+  ) async {
+    final index = state.videos.indexWhere((video) => video.id == event.videoId);
+    if (index == -1) return;
+
+    final video = state.videos[index];
+    final newLiked = !video.liked;
+    final delta = newLiked ? 1 : -1;
+    final newLikes = (video.likes + delta).clamp(0, 1 << 30);
+
+    final optimisticVideos = List<Video>.from(state.videos);
+    optimisticVideos[index] = video.copyWith(liked: newLiked, likes: newLikes);
+
+    emit(state.copyWith(videos: optimisticVideos));
+
+    final result = await _toggleVideoLike(
+      videoId: event.videoId,
+      like: newLiked,
+    );
+
+    if (result.isSuccess || isClosed) return;
+
+    final revertedVideos = List<Video>.from(state.videos);
+    revertedVideos[index] = video;
+
+    emit(
+      state.copyWith(
+        videos: revertedVideos,
+        snackbarMessage: 'Could not update like. Please try again.',
+        uiActionType: UIActionsType.error,
+      ),
+    );
+  }
+
+  Future<void> _onStarToggled(
+    ReelStarToggled event,
+    Emitter<ReelsState> emit,
+  ) async {
+    final index = state.videos.indexWhere((video) => video.id == event.videoId);
+    if (index == -1) return;
+
+    final video = state.videos[index];
+    final newStarred = !video.starred;
+    final delta = newStarred ? 1 : -1;
+    final newStarredCount = (video.starredCount + delta).clamp(0, 1 << 30);
+
+    final optimisticVideos = List<Video>.from(state.videos);
+    optimisticVideos[index] = video.copyWith(
+      starred: newStarred,
+      starredCount: newStarredCount,
+    );
+
+    emit(state.copyWith(videos: optimisticVideos));
+
+    final result = await _toggleVideoStar(
+      videoId: event.videoId,
+      star: newStarred,
+    );
+
+    if (result.isSuccess || isClosed) return;
+
+    final revertedVideos = List<Video>.from(state.videos);
+    revertedVideos[index] = video;
+
+    emit(
+      state.copyWith(
+        videos: revertedVideos,
+        snackbarMessage: 'Could not update star. Please try again.',
+        uiActionType: UIActionsType.error,
+      ),
+    );
+  }
+
+  void _onScrollHandled(ReelsScrollHandled event, Emitter<ReelsState> emit) {
+    emit(state.copyWith(clearScrollToPage: true));
+  }
+
+  // MARK: Helper 
+
   ReelsVideoManager _createManager(List<Video> videos) {
     return ReelsVideoManager(
       videos: videos,
@@ -274,6 +380,8 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
       },
     );
   }
+
+  // MARK: Disposal
 
   Future<void> _disposePlayback() async {
     _videoManager?.dispose();

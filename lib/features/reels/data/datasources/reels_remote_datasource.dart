@@ -3,6 +3,8 @@ import 'package:vybe/features/reels/data/models/video_model.dart';
 
 abstract class ReelsRemoteDataSource {
   Future<List<VideoModel>> fetchVideos();
+  Future<void> updateLikeCount(String videoId, int delta);
+  Future<void> updateStarCount(String videoId, int delta);
 }
 
 class ReelsRemoteDataSourceImpl implements ReelsRemoteDataSource {
@@ -22,5 +24,19 @@ class ReelsRemoteDataSourceImpl implements ReelsRemoteDataSource {
             .get();
 
     return snapshot.docs.map(VideoModel.fromFirestore).toList();
+  }
+
+  @override
+  Future<void> updateLikeCount(String videoId, int delta) async {
+    await _firestore.collection(_collection).doc(videoId).update({
+      'likes': FieldValue.increment(delta),
+    });
+  }
+
+  @override
+  Future<void> updateStarCount(String videoId, int delta) async {
+    await _firestore.collection(_collection).doc(videoId).update({
+      'starredCount': FieldValue.increment(delta),
+    });
   }
 }

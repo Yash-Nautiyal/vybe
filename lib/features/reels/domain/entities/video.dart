@@ -28,4 +28,36 @@ class Video {
   final bool liked;
   final bool starred;
   final DateTime? createdAt;
+
+  Video copyWith({
+    String? id,
+    String? userId,
+    String? username,
+    String? userProfilePic,
+    String? videoUrl,
+    String? thumbnailUrl,
+    String? description,
+    int? likes,
+    int? comments,
+    int? starredCount,
+    bool? liked,
+    bool? starred,
+    DateTime? createdAt,
+  }) {
+    return Video(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      username: username ?? this.username,
+      userProfilePic: userProfilePic ?? this.userProfilePic,
+      videoUrl: videoUrl ?? this.videoUrl,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      description: description ?? this.description,
+      likes: likes ?? this.likes,
+      comments: comments ?? this.comments,
+      starredCount: starredCount ?? this.starredCount,
+      liked: liked ?? this.liked,
+      starred: starred ?? this.starred,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

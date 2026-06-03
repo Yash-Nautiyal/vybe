@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:vybe/features/reels/domain/entities/video.dart';
+import 'package:vybe/features/reels/presentation/bloc/reels_bloc.dart';
+import 'package:vybe/features/reels/presentation/bloc/reels_event.dart';
 
 import '../actions/action_column.dart';
 import 'reel_info.dart';
@@ -39,6 +42,14 @@ class ReelOverlay extends StatelessWidget {
                   liked: video.liked,
                   starred: video.starred,
                   starredCount: video.starredCount,
+                  onLike:
+                      () => context.read<ReelsBloc>().add(
+                        ReelLikeToggled(video.id),
+                      ),
+                  onStar:
+                      () => context.read<ReelsBloc>().add(
+                        ReelStarToggled(video.id),
+                      ),
                 ),
               ],
             ),

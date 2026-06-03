@@ -70,3 +70,21 @@ final class ReelsVideoRetryRequested extends ReelsEvent {
   @override
   List<Object?> get props => [index];
 }
+
+final class ReelLikeToggled extends ReelsEvent {
+  const ReelLikeToggled(this.videoId);
+
+  final String videoId;
+
+  @override
+  List<Object?> get props => [videoId];
+}
+
+final class ReelStarToggled extends ReelsEvent {
+  const ReelStarToggled(this.videoId);
+
+  final String videoId;
+
+  @override
+  List<Object?> get props => [videoId];
+}

@@ -3,6 +3,8 @@ import 'package:vybe/features/reels/domain/entities/video.dart';
 
 enum ReelsStatus { initial, loading, loaded, failure }
 
+enum UIActionsType { success, error }
+
 class ReelsState extends Equatable {
   const ReelsState({
     this.status = ReelsStatus.initial,
@@ -11,6 +13,7 @@ class ReelsState extends Equatable {
     this.isReseeding = false,
     this.isClearingCache = false,
     this.snackbarMessage,
+    this.uiActionType,
     this.scrollToPage,
     this.controllerVersion = 0,
   });
@@ -21,6 +24,7 @@ class ReelsState extends Equatable {
   final bool isReseeding;
   final bool isClearingCache;
   final String? snackbarMessage;
+  final UIActionsType? uiActionType;
   final int? scrollToPage;
   final int controllerVersion;
 
@@ -36,7 +40,9 @@ class ReelsState extends Equatable {
     bool? isReseeding,
     bool? isClearingCache,
     String? snackbarMessage,
+    UIActionsType? uiActionType,
     bool clearSnackbarMessage = false,
+    bool clearUiActionType = false,
     int? scrollToPage,
     bool clearScrollToPage = false,
     int? controllerVersion,
@@ -52,6 +58,8 @@ class ReelsState extends Equatable {
           clearSnackbarMessage
               ? null
               : (snackbarMessage ?? this.snackbarMessage),
+      uiActionType:
+          clearUiActionType ? null : (uiActionType ?? this.uiActionType),
       scrollToPage:
           clearScrollToPage ? null : (scrollToPage ?? this.scrollToPage),
       controllerVersion: controllerVersion ?? this.controllerVersion,
@@ -66,6 +74,7 @@ class ReelsState extends Equatable {
     isReseeding,
     isClearingCache,
     snackbarMessage,
+    uiActionType,
     scrollToPage,
     controllerVersion,
   ];
