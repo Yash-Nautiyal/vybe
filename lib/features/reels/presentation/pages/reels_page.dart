@@ -39,11 +39,21 @@ class _ReelsView extends StatefulWidget {
 
 class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
   final PageController _pageController = PageController();
+  AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
+
+  int get _currentPageIndex =>
+      _pageController.hasClients ? (_pageController.page?.round() ?? 0) : 0;
+
+  bool get _isAppBackgrounded =>
+      _lifecycleState == AppLifecycleState.hidden ||
+      _lifecycleState == AppLifecycleState.detached;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _lifecycleState =
+        WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed;
   }
 
   @override
@@ -55,14 +65,18 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _lifecycleState = state;
     final bloc = context.read<ReelsBloc>();
 
-    if (state == AppLifecycleState.paused) {
+    if (_isAppBackgrounded) {
       bloc.add(const ReelsPlaybackPaused());
-    } else if (state == AppLifecycleState.resumed) {
-      final index =
-          _pageController.hasClients ? (_pageController.page?.round() ?? 0) : 0;
-      bloc.add(ReelsPlaybackResumed(index: index));
+      return;
+    }
+
+    if (state == AppLifecycleState.resumed ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      bloc.add(ReelsPlaybackResumed(index: _currentPageIndex));
     }
   }
 
@@ -102,11 +116,7 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
               state.uiActionType == UIActionsType.error
                   ? SnackbarType.error
                   : SnackbarType.success;
-          showAnimatedSnackbar(
-            context,
-            state.snackbarMessage!,
-            snackbarType,
-          );
+          showAnimatedSnackbar(context, state.snackbarMessage!, snackbarType);
           context.read<ReelsBloc>().add(const ReelsSnackbarDismissed());
         }
       },
@@ -123,73 +133,92 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
                       previous.isClearingCache != current.isClearingCache ||
                       previous.errorMessage != current.errorMessage ||
                       previous.controllerVersion != current.controllerVersion,
-              builder: (context, state) => _body(context, state),
+              builder: (context, state) {
+                // MARK: Loader
+
+                if (state.showFullScreenLoader) {
+                  final textTheme = Theme.of(context).textTheme;
+
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CustomLoader(size: 80, gap: 10, borderRadius: 18),
+                        if (state.isReseeding) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            'Reseeding Firestore...',
+                            style: textTheme.bodyLarge,
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }
+
+                // MARK: Error
+
+                if (state.status == ReelsStatus.failure) {
+                  return ErrorView(
+                    message: state.errorMessage ?? 'Failed to load reels',
+                    onRetry:
+                        () => context.read<ReelsBloc>().add(
+                          const ReelsLoadRequested(),
+                        ),
+                  );
+                }
+
+                if (state.status == ReelsStatus.loaded &&
+                    state.videos.isEmpty) {
+                  return ErrorView(
+                    message: 'No videos found in Firestore.',
+                    onRetry:
+                        () => context.read<ReelsBloc>().add(
+                          const ReelsLoadRequested(),
+                        ),
+                  );
+                }
+
+                // MARK: Body
+
+                if (state.status != ReelsStatus.loaded) {
+                  return const SizedBox.shrink();
+                }
+
+                final videoManager = context.read<ReelsBloc>().videoManager;
+
+                return PageView.builder(
+                  controller: _pageController,
+                  scrollDirection: Axis.vertical,
+                  itemCount: state.videos.length,
+                  onPageChanged: (index) {
+                    context.read<ReelsBloc>().add(ReelsPageChanged(index));
+                  },
+                  itemBuilder: (context, index) {
+                    return ReelItem(
+                      index: index,
+                      video: state.videos[index],
+                      controller: videoManager?.controllerAt(index),
+                      failure: videoManager?.failureAt(index),
+                      isBuffering: videoManager?.isBufferingAt(index) ?? false,
+                      isUserPaused:
+                          videoManager?.isUserPausedAt(index) ?? false,
+                      canTogglePlayPause:
+                          videoManager?.canUserTogglePlaybackAt(index) ?? false,
+                      onRetry: () {
+                        context.read<ReelsBloc>().add(
+                          ReelsVideoRetryRequested(index),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
             ),
             DevReelOverlay(pageController: _pageController),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _body(BuildContext context, ReelsState state) {
-    if (state.showFullScreenLoader) {
-      final textTheme = Theme.of(context).textTheme;
-
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CustomLoader(size: 80, gap: 10, borderRadius: 18),
-            if (state.isReseeding) ...[
-              const SizedBox(height: 16),
-              Text('Reseeding Firestore...', style: textTheme.bodyLarge),
-            ],
-          ],
-        ),
-      );
-    }
-
-    if (state.status == ReelsStatus.failure) {
-      return ErrorView(
-        message: state.errorMessage ?? 'Failed to load reels',
-        onRetry:
-            () => context.read<ReelsBloc>().add(const ReelsLoadRequested()),
-      );
-    }
-
-    if (state.status == ReelsStatus.loaded && state.videos.isEmpty) {
-      return ErrorView(
-        message: 'No videos found in Firestore.',
-        onRetry:
-            () => context.read<ReelsBloc>().add(const ReelsLoadRequested()),
-      );
-    }
-
-    if (state.status != ReelsStatus.loaded) {
-      return const SizedBox.shrink();
-    }
-
-    final videoManager = context.read<ReelsBloc>().videoManager;
-
-    return PageView.builder(
-      controller: _pageController,
-      scrollDirection: Axis.vertical,
-      itemCount: state.videos.length,
-      onPageChanged: (index) {
-        context.read<ReelsBloc>().add(ReelsPageChanged(index));
-      },
-      itemBuilder: (context, index) {
-        return ReelItem(
-          video: state.videos[index],
-          controller: videoManager?.controllerAt(index),
-          failure: videoManager?.failureAt(index),
-          isBuffering: videoManager?.isBufferingAt(index) ?? false,
-          onRetry: () {
-            context.read<ReelsBloc>().add(ReelsVideoRetryRequested(index));
-          },
-        );
-      },
     );
   }
 }

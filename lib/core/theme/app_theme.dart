@@ -6,10 +6,26 @@ import './app_typography.dart';
 import './app_pallete.dart';
 
 class AppTheme {
-  static ThemeData darkTheme = buildTheme();
+  AppTheme._();
+
+  static final ThemeData fallbackDarkTheme = _buildTheme(useGoogleFonts: false);
+
+  static Future<ThemeData> loadDarkTheme() async {
+    GoogleFonts.config.allowRuntimeFetching = true;
+    try {
+      await GoogleFonts.pendingFonts([
+        GoogleFonts.quicksand(),
+        GoogleFonts.barlowCondensed(),
+      ]);
+      return _buildTheme(useGoogleFonts: true);
+    } catch (_) {
+      GoogleFonts.config.allowRuntimeFetching = false;
+      return fallbackDarkTheme;
+    }
+  }
 }
 
-ThemeData buildTheme() {
+ThemeData _buildTheme({required bool useGoogleFonts}) {
   final baseTextTheme = TextTheme(
     displayLarge: AppTypography.headingLarge.copyWith(color: AppPallete.white),
     displayMedium: AppTypography.headingMedium.copyWith(
@@ -27,10 +43,10 @@ ThemeData buildTheme() {
     labelSmall: AppTypography.labelSmall.copyWith(color: AppPallete.grey700),
   );
 
-  final googleTextTheme = GoogleFonts.getTextTheme(
-    AppTypography.primaryFont,
-    baseTextTheme,
-  );
+  final textTheme =
+      useGoogleFonts
+          ? GoogleFonts.getTextTheme(AppTypography.primaryFont, baseTextTheme)
+          : baseTextTheme;
 
   return ThemeData(
     useMaterial3: true,
@@ -46,8 +62,8 @@ ThemeData buildTheme() {
     hoverColor: AppPallete.grey200,
 
     // Text Theme
-    fontFamily: AppTypography.primaryFont,
-    textTheme: googleTextTheme,
+    fontFamily: useGoogleFonts ? AppTypography.primaryFont : null,
+    textTheme: textTheme,
 
     // AppBar
     appBarTheme: const AppBarTheme(

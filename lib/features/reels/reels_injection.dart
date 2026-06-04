@@ -1,3 +1,5 @@
+import 'package:vybe/core/network/app_network.dart';
+import 'package:vybe/core/network/network_info.dart';
 import 'package:vybe/features/reels/data/datasources/reels_remote_datasource.dart';
 import 'package:vybe/features/reels/data/datasources/seed_local_datasource.dart';
 import 'package:vybe/features/reels/data/datasources/video_cache_datasource.dart';
@@ -30,6 +32,8 @@ class ReelsInjection {
   static ToggleVideoStar? _toggleVideoStar;
   static VideoCacheDataSource? _videoCacheDataSource;
 
+  static NetworkInfo get networkInfo => AppNetwork.instance;
+
   static ReelsLocalDataSource get interactionsLocalDataSource {
     _interactionsLocalDataSource ??= ReelsLocalDataSourceImpl();
     return _interactionsLocalDataSource!;
@@ -37,7 +41,7 @@ class ReelsInjection {
 
   static ReelsRepository get repository {
     _repository ??= ReelsRepositoryImpl(
-      ReelsRemoteDataSourceImpl(),
+      ReelsRemoteDataSourceImpl(networkInfo: networkInfo),
       interactionsLocalDataSource,
     );
     return _repository!;

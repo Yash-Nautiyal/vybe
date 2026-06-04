@@ -14,12 +14,15 @@ class AppIcons {
       '$_illustrationsPath/ic-email-inbox.svg';
   static const String forgotPasswordIllustration =
       '$_illustrationsPath/ic-password.svg';
+  static const String offlineIllustration =
+      '$_illustrationsPath/ic-no-wifi.svg';
 
   // --------------- ARROW ICONS ---------------
   static const String checkRoundedIcon = '$_arrowPath/ic-solid-check-one.svg';
   static const String redirectIcon = '$_arrowPath/ic-redirect.svg';
   static const String restartBoldIcon = '$_arrowPath/ic-solar_restart-bold';
-  static const String chatLinearIcon = '$_arrowPath/ic-solar-chat-line-linear.svg';
+  static const String chatLinearIcon =
+      '$_arrowPath/ic-solar-chat-line-linear.svg';
   static const String heartLinearIcon = '$_arrowPath/ic-solar-heart-linear.svg';
   static const String shareLinearIcon = '$_arrowPath/ic-solar-share-linear.svg';
   static const String starLinearIcon = '$_arrowPath/ic-solar-star-linear.svg';
@@ -42,4 +45,6 @@ class AppIcons {
   static const String calendarIcon = '$_solidPath/ic-calender.svg';
   static const String settingIcon = '$_solidPath/ic-settings.svg';
   static const String alertIcon = '$_solidPath/ic-alert.svg';
+  static const String heartBoldIcon = '$_solidPath/ic-solar-heart-bold.svg';
+  static const String starBoldIcon = '$_solidPath/ic-solar-star-bold.svg';
 }

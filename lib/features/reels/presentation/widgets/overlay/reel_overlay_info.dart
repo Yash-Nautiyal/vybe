@@ -3,8 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:vybe/core/helpers/date_time_helper.dart';
 import 'package:vybe/features/reels/domain/entities/video.dart';
 
-class ReelInfo extends StatefulWidget {
-  const ReelInfo({
+class ReelOverlayInfo extends StatefulWidget {
+  const ReelOverlayInfo({
     super.key,
     required this.video,
     required this.expandedNotifier,
@@ -14,10 +14,10 @@ class ReelInfo extends StatefulWidget {
   final ValueNotifier<bool> expandedNotifier;
 
   @override
-  State<ReelInfo> createState() => _ReelInfoState();
+  State<ReelOverlayInfo> createState() => _ReelOverlayInfoState();
 }
 
-class _ReelInfoState extends State<ReelInfo> {
+class _ReelOverlayInfoState extends State<ReelOverlayInfo> {
   static const double _collapsedHeight = 66.0;
   static const double _expandedHeight = 220.0;
   static const Duration _dur = Duration(milliseconds: 340);
@@ -27,9 +27,13 @@ class _ReelInfoState extends State<ReelInfo> {
   final ScrollController _scroll = ScrollController();
 
   @override
-  void didUpdateWidget(covariant ReelInfo oldWidget) {
+  void didUpdateWidget(covariant ReelOverlayInfo oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.video != widget.video && _expanded) _close();
+    if (oldWidget.video.id != widget.video.id && _expanded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _close(deferOverlay: true);
+      });
+    }
   }
 
   @override
@@ -38,14 +42,30 @@ class _ReelInfoState extends State<ReelInfo> {
     super.dispose();
   }
 
-  void _open() {
-    setState(() => _expanded = true);
-    widget.expandedNotifier.value = true;
+  void _setExpandedOverlay(bool expanded, {bool defer = false}) {
+    if (widget.expandedNotifier.value == expanded) return;
+
+    void apply() {
+      if (!mounted) return;
+      widget.expandedNotifier.value = expanded;
+    }
+
+    if (defer) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => apply());
+    } else {
+      apply();
+    }
   }
 
-  void _close() {
+  void _open() {
+    setState(() => _expanded = true);
+    _setExpandedOverlay(true);
+  }
+
+  void _close({bool deferOverlay = false}) {
+    if (!_expanded) return;
     setState(() => _expanded = false);
-    widget.expandedNotifier.value = false;
+    _setExpandedOverlay(false, defer: deferOverlay);
     _scroll.jumpTo(0);
   }
 

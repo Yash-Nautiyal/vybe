@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vybe/core/constants/app_icons.dart';
 import 'package:vybe/core/error/failures.dart';
 
 class VideoErrorOverlay extends StatelessWidget {
@@ -24,10 +26,13 @@ class VideoErrorOverlay extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  color: colors.onSurface,
-                  size: 48,
+                SvgPicture.asset(
+                  AppIcons.alertIcon,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
+                  ),
+                  width: 48,
                 ),
                 const SizedBox(height: 16),
                 Text(

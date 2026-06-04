@@ -28,6 +28,7 @@ class ActionColumn extends StatelessWidget {
     return Column(
       children: [
         ActionButton.like(
+          key: const ValueKey('like'),
           liked: liked,
           label: formatCount(likes),
           onClick: onLike,
@@ -38,6 +39,7 @@ class ActionColumn extends StatelessWidget {
         const ActionButton.share(label: 'Share'),
         const SizedBox(height: 20),
         ActionButton.star(
+          key: const ValueKey('star'),
           starred: starred,
           label: starredCount > 0 ? formatCount(starredCount) : '',
           onClick: onStar,

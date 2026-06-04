@@ -5,7 +5,7 @@ import 'package:vybe/features/reels/presentation/bloc/reels_bloc.dart';
 import 'package:vybe/features/reels/presentation/bloc/reels_event.dart';
 
 import '../actions/action_column.dart';
-import 'reel_info.dart';
+import 'reel_overlay_info.dart';
 
 class ReelOverlay extends StatelessWidget {
   const ReelOverlay({
@@ -30,7 +30,7 @@ class ReelOverlay extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
-                  child: ReelInfo(
+                  child: ReelOverlayInfo(
                     video: video,
                     expandedNotifier: expandedNotifier,
                   ),

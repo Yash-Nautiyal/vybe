@@ -88,3 +88,12 @@ final class ReelStarToggled extends ReelsEvent {
   @override
   List<Object?> get props => [videoId];
 }
+
+final class ReelPlayPauseToggled extends ReelsEvent {
+  const ReelPlayPauseToggled(this.index);
+
+  final int index;
+
+  @override
+  List<Object?> get props => [index];
+}

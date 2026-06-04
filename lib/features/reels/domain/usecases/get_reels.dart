@@ -1,7 +1,7 @@
-import 'package:vybe/core/error/failures.dart';
+import 'package:vybe/core/error/error_mapper.dart';
 import 'package:vybe/core/utils/result.dart';
-import 'package:vybe/features/reels/domain/entities/video.dart';
-import 'package:vybe/features/reels/domain/repositories/reels_repository.dart';
+import '../entities/video.dart';
+import '../repositories/reels_repository.dart';
 
 /// Fetches the reel feed from the domain repository.
 class GetReels {
@@ -14,7 +14,7 @@ class GetReels {
       final videos = await _repository.getReels();
       return Result.success(videos);
     } catch (error) {
-      return Result.failure(FirestoreFailure(error.toString()));
+      return Result.failure(mapToFailure(error));
     }
   }
 }

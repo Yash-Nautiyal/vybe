@@ -38,6 +38,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     on<ReelsVideoRetryRequested>(_onVideoRetryRequested);
     on<ReelLikeToggled>(_onLikeToggled);
     on<ReelStarToggled>(_onStarToggled);
+    on<ReelPlayPauseToggled>(_onPlayPauseToggled);
   }
 
   final GetReels _getReels;
@@ -219,7 +220,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     ReelsPlaybackResumed event,
     Emitter<ReelsState> emit,
   ) async {
-    await _videoManager?.onPageChanged(event.index);
+    await _videoManager?.resumeAt(event.index);
   }
 
   Future<void> _attachPlayback(List<Video> videos) async {
@@ -285,7 +286,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     emit(state.copyWith(clearSnackbarMessage: true, clearUiActionType: true));
   }
 
-  // MARK: User Actions Events
+  // MARK: User Evts.
 
   Future<void> _onLikeToggled(
     ReelLikeToggled event,
@@ -366,7 +367,17 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     emit(state.copyWith(clearScrollToPage: true));
   }
 
-  // MARK: Helper 
+  Future<void> _onPlayPauseToggled(
+    ReelPlayPauseToggled event,
+    Emitter<ReelsState> emit,
+  ) async {
+    await _videoManager?.toggleUserPlayPauseAt(event.index);
+    if (!isClosed) {
+      emit(state.copyWith(controllerVersion: state.controllerVersion + 1));
+    }
+  }
+
+  // MARK: Helper
 
   ReelsVideoManager _createManager(List<Video> videos) {
     return ReelsVideoManager(

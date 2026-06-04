@@ -1,10 +1,14 @@
-class AuthExceptionMessages {
-  
+class AppExceptionMessages {
   static const String unexpectedError =
       'Something went wrong. Please try again in a moment.';
 
   static const String networkError =
       'Network error. Check your connection and try again.';
+
+  static const String noInternet =
+      'No internet connection. Check your network and try again.';
+
+  static const String backOnline = 'Back online';
 
   static const String requestTimedOut =
       'Request timed out. Check your connection and try again.';
@@ -34,7 +38,10 @@ class AuthExceptionMessages {
       case 'too-many-requests':
         return tooManyRequests;
       case 'network-request-failed':
-        return networkError;
+      case 'unavailable':
+        return noInternet;
+      case 'deadline-exceeded':
+        return requestTimedOut;
       default:
         return unexpectedError;
     }

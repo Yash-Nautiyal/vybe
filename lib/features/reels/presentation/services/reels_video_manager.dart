@@ -31,10 +31,13 @@ class ReelsVideoManager {
   final Set<int> _warmingIndices = {};
   final Set<int> _initializingIndices = {};
   final Map<int, VoidCallback> _bufferingListeners = {};
+  final Map<int, VoidCallback> _playbackGuardListeners = {};
   final Map<int, Timer> _bufferingBannerTimers = {};
   final Map<int, Timer> _bufferingTimeoutTimers = {};
+  final Set<int> _userPausedIndices = {};
 
   int _currentIndex = 0;
+  bool _playbackAllowed = true;
 
   static const _initTimeout = Duration(seconds: 10);
   static const _bufferingBannerDelay = Duration(seconds: 8);
@@ -49,6 +52,42 @@ class ReelsVideoManager {
   AppFailure? failureAt(int index) => _errors[index];
 
   bool isBufferingAt(int index) => _bufferingIndices.contains(index);
+
+  bool isUserPausedAt(int index) => _userPausedIndices.contains(index);
+
+  /// True when the decoder is ready and not in a network/buffering state.
+  bool canUserTogglePlaybackAt(int index) {
+    if (index != _currentIndex) return false;
+    if (_errors[index] != null) return false;
+    if (_initializingIndices.contains(index)) return false;
+    if (_bufferingIndices.contains(index)) return false;
+
+    final controller = _controllers[index];
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        controller.value.hasError ||
+        controller.value.isBuffering) {
+      return false;
+    }
+    return true;
+  }
+
+  /// Tap play/pause for a loaded, non-buffering reel at [index].
+  Future<void> toggleUserPlayPauseAt(int index) async {
+    if (!canUserTogglePlaybackAt(index)) return;
+
+    final controller = _controllers[index]!;
+
+    if (_userPausedIndices.contains(index)) {
+      _userPausedIndices.remove(index);
+      await _play(index);
+    } else if (controller.value.isPlaying) {
+      _userPausedIndices.add(index);
+      _safePause(controller);
+    }
+
+    onPlaybackStateChanged?.call(index);
+  }
 
   Future<void> start() async {
     if (_videos.isEmpty) return;
@@ -66,6 +105,8 @@ class ReelsVideoManager {
   Future<void> onPageChanged(int index) async {
     if (index < 0 || index >= _videos.length) return;
 
+    _playbackAllowed = true;
+    _userPausedIndices.clear();
     _safePause(_controllers[_currentIndex]);
     _currentIndex = index;
 
@@ -102,6 +143,7 @@ class ReelsVideoManager {
 
     final existing = _controllers.remove(index);
     _detachBufferingWatchdog(index);
+    _detachPlaybackGuard(index);
     await existing?.dispose();
 
     await _ensureController(index);
@@ -113,9 +155,25 @@ class ReelsVideoManager {
   }
 
   void pauseAll() {
+    _playbackAllowed = false;
     for (final controller in _controllers.values) {
       _safePause(controller);
     }
+  }
+
+  Future<void> resumeAt(int index) async {
+    if (index < 0 || index >= _videos.length) return;
+
+    _playbackAllowed = true;
+    _userPausedIndices.remove(index);
+    if (index == _currentIndex) {
+      if (_errors[index] == null) {
+        await _play(index);
+      }
+      return;
+    }
+
+    await onPageChanged(index);
   }
 
   /// Drops distant controllers under memory pressure; disk cache is untouched.
@@ -136,6 +194,9 @@ class ReelsVideoManager {
     for (final index in _bufferingListeners.keys.toList()) {
       _detachBufferingWatchdog(index);
     }
+    for (final index in _playbackGuardListeners.keys.toList()) {
+      _detachPlaybackGuard(index);
+    }
 
     for (final controller in _controllers.values) {
       controller.dispose();
@@ -145,6 +206,7 @@ class ReelsVideoManager {
     _bufferingIndices.clear();
     _warmingIndices.clear();
     _initializingIndices.clear();
+    _userPausedIndices.clear();
   }
 
   // ─────────────────────────────────────────
@@ -186,7 +248,10 @@ class ReelsVideoManager {
     var decoderRetried = false;
 
     while (true) {
-      final controller = VideoPlayerController.file(file);
+      final controller = VideoPlayerController.file(
+        file,
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+      );
 
       try {
         await controller
@@ -198,6 +263,7 @@ class ReelsVideoManager {
         await controller.setLooping(true);
         _controllers[index] = controller;
         _attachBufferingWatchdog(index, controller);
+        _attachPlaybackGuard(index, controller);
         onControllerReady?.call(index);
         return;
       } catch (error, stackTrace) {
@@ -247,9 +313,12 @@ class ReelsVideoManager {
     final controller = _controllers[index];
     if (controller == null ||
         !controller.value.isInitialized ||
-        controller.value.hasError) {
+        controller.value.hasError ||
+        _userPausedIndices.contains(index)) {
       return;
     }
+
+    if (!_playbackAllowed || index != _currentIndex) return;
 
     try {
       await controller.play();
@@ -265,6 +334,7 @@ class ReelsVideoManager {
 
     for (final key in keysToRemove) {
       _detachBufferingWatchdog(key);
+      _detachPlaybackGuard(key);
       _controllers.remove(key)?.dispose();
       _errors.remove(key);
     }
@@ -338,6 +408,34 @@ class ReelsVideoManager {
       controller.removeListener(listener);
     }
     _clearBufferingState(index);
+  }
+
+  void _attachPlaybackGuard(int index, VideoPlayerController controller) {
+    _detachPlaybackGuard(index);
+
+    void listener() {
+      if (!_playbackAllowed || index != _currentIndex) return;
+      if (_userPausedIndices.contains(index)) return;
+      if (!controller.value.isInitialized ||
+          controller.value.hasError ||
+          controller.value.isBuffering ||
+          controller.value.isPlaying) {
+        return;
+      }
+
+      unawaited(_play(index));
+    }
+
+    _playbackGuardListeners[index] = listener;
+    controller.addListener(listener);
+  }
+
+  void _detachPlaybackGuard(int index) {
+    final listener = _playbackGuardListeners.remove(index);
+    final controller = _controllers[index];
+    if (listener != null && controller != null) {
+      controller.removeListener(listener);
+    }
   }
 
   // ─────────────────────────────────────────

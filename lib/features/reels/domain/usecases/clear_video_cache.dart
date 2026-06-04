@@ -1,6 +1,6 @@
 import 'package:vybe/core/error/failures.dart';
 import 'package:vybe/core/utils/result.dart';
-import 'package:vybe/features/reels/domain/repositories/video_cache_repository.dart';
+import '../repositories/video_cache_repository.dart';
 
 class ClearVideoCache {
   const ClearVideoCache(this._repository);

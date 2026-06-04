@@ -24,10 +24,7 @@ class VideoCacheDataSourceImpl implements VideoCacheDataSource {
     try {
       return await _cacheManager
           .getSingleFile(url)
-          .timeout(
-            _fetchTimeout,
-            onTimeout: () => throw TimeoutException(),
-          );
+          .timeout(_fetchTimeout, onTimeout: () => throw TimeoutException());
     } on SocketException {
       throw NetworkException();
     } on TimeoutException {

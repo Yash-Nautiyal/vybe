@@ -1,78 +1,154 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:video_player/video_player.dart';
 import 'package:vybe/core/error/failures.dart';
-import 'package:vybe/features/reels/domain/entities/video.dart';
+
+import '../../domain/entities/video.dart';
+import '../../presentation/bloc/reels_bloc.dart';
+import '../../presentation/bloc/reels_event.dart';
 
 import 'error/video_error_overlay.dart';
 import 'overlay/reel_overlay.dart';
-
-// MARK: Reel Item
+import 'overlay/reel_pause_overlay.dart';
+import 'ui/bottom_gradient.dart';
+import 'ui/buffer_banner.dart';
+import 'ui/double_tap_heart.dart';
 
 class ReelItem extends StatefulWidget {
   const ReelItem({
     super.key,
+    required this.index,
     required this.video,
     this.controller,
     this.failure,
     this.isBuffering = false,
+    this.isUserPaused = false,
+    this.canTogglePlayPause = false,
     this.onRetry,
   });
 
+  final int index;
   final Video video;
   final VideoPlayerController? controller;
   final AppFailure? failure;
   final bool isBuffering;
+  final bool isUserPaused;
+  final bool canTogglePlayPause;
   final VoidCallback? onRetry;
 
   @override
   State<ReelItem> createState() => _ReelItemState();
 }
 
-class _ReelItemState extends State<ReelItem> {
+class _ReelItemState extends State<ReelItem>
+    with SingleTickerProviderStateMixin {
   final ValueNotifier<bool> _descExpandedNotifier = ValueNotifier(false);
+
+  late final AnimationController _heartController;
+  late final Animation<double> _heartScale;
+  late final Animation<double> _heartOpacity;
+  Offset? _tapPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    _heartController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _heartScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.35), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.35, end: 1.0), weight: 30),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 30),
+    ]).animate(
+      CurvedAnimation(parent: _heartController, curve: Curves.easeOut),
+    );
+    _heartOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 55),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 45),
+    ]).animate(_heartController);
+  }
 
   @override
   void dispose() {
+    _heartController.dispose();
     _descExpandedNotifier.dispose();
     super.dispose();
   }
 
+  void _onDoubleTapDown(TapDownDetails details) {
+    setState(() => _tapPosition = details.localPosition);
+  }
+
+  void _onDoubleTap() {
+    if (!widget.video.liked) {
+      context.read<ReelsBloc>().add(ReelLikeToggled(widget.video.id));
+    }
+    _heartController.forward(from: 0);
+  }
+
+  void _onTap() {
+    if (!widget.canTogglePlayPause) return;
+    context.read<ReelsBloc>().add(ReelPlayPauseToggled(widget.index));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        _VideoBackground(
-          controller: widget.controller,
-          thumbnailUrl: widget.video.thumbnailUrl,
-          showLoading: widget.failure == null,
-        ),
-        if (widget.failure != null)
-          VideoErrorOverlay(failure: widget.failure!, onRetry: widget.onRetry),
-        const _BottomGradient(),
+    return GestureDetector(
+      onTap: _onTap,
+      onDoubleTapDown: _onDoubleTapDown,
+      onDoubleTap: _onDoubleTap,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _VideoBackground(
+            controller: widget.controller,
+            thumbnailUrl: widget.video.thumbnailUrl,
+            showLoading: widget.failure == null,
+          ),
+          if (widget.failure != null)
+            VideoErrorOverlay(
+              failure: widget.failure!,
+              onRetry: widget.onRetry,
+            ),
+          const BottomGradient(),
 
-        ValueListenableBuilder<bool>(
-          valueListenable: _descExpandedNotifier,
-          builder:
-              (context, expanded, _) => AnimatedOpacity(
-                opacity: expanded ? 0.45 : 0.0,
-                duration: const Duration(milliseconds: 340),
-                curve: Curves.easeInOutCubic,
-                child: const ColoredBox(
-                  color: Colors.black,
-                  child: SizedBox.expand(),
+          ValueListenableBuilder<bool>(
+            valueListenable: _descExpandedNotifier,
+            builder:
+                (context, expanded, _) => AnimatedOpacity(
+                  opacity: expanded ? 0.45 : 0.0,
+                  duration: const Duration(milliseconds: 340),
+                  curve: Curves.easeInOutCubic,
+                  child: const ColoredBox(
+                    color: Colors.black,
+                    child: SizedBox.expand(),
+                  ),
                 ),
-              ),
-        ),
+          ),
 
-        ReelOverlay(
-          video: widget.video,
-          expandedNotifier: _descExpandedNotifier,
-        ),
-        if (widget.isBuffering && widget.failure == null)
-          const _BufferingBanner(),
-      ],
+          ReelOverlay(
+            video: widget.video,
+            expandedNotifier: _descExpandedNotifier,
+          ),
+          if (widget.isBuffering && widget.failure == null)
+            const BufferingBanner(),
+
+          if (widget.isUserPaused &&
+              widget.failure == null &&
+              !widget.isBuffering)
+            const PauseOverlay(),
+
+          if (_tapPosition != null)
+            DoubleTapHeart(
+              position: _tapPosition!,
+              controller: _heartController,
+              scaleAnim: _heartScale,
+              opacityAnim: _heartOpacity,
+            ),
+        ],
+      ),
     );
   }
 }
@@ -177,77 +253,6 @@ class _VideoBackgroundState extends State<_VideoBackground> {
           if (widget.showLoading && !_isInitialized)
             const Center(child: CircularProgressIndicator()),
         ],
-      ),
-    );
-  }
-}
-
-// MARK: Buffering Banner
-
-class _BufferingBanner extends StatelessWidget {
-  const _BufferingBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-
-    return IgnorePointer(
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: SafeArea(
-          minimum: const EdgeInsets.only(bottom: 96),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: colors.surfaceContainer.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: colors.onSurface,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text('Reconnecting...', style: theme.textTheme.labelMedium),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// MARK: Bottom Gradient
-
-class _BottomGradient extends StatelessWidget {
-  const _BottomGradient();
-
-  @override
-  Widget build(BuildContext context) {
-    final shadow = Theme.of(context).colorScheme.shadow;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.transparent,
-            shadow.withValues(alpha: 0.54),
-            shadow.withValues(alpha: 0.87),
-          ],
-          stops: const [0.5, 0.75, 1.0],
-        ),
       ),
     );
   }
