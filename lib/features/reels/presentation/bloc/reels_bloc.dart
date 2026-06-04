@@ -29,6 +29,7 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     on<ReelsReseedRequested>(_onReseedRequested);
     on<ReelsClearCacheRequested>(_onClearCacheRequested);
     on<ReelsPageChanged>(_onPageChanged);
+    on<ReelsVideoSelected>(_onVideoSelected);
     on<ReelsPlaybackPaused>(_onPlaybackPaused);
     on<ReelsPlaybackResumed>(_onPlaybackResumed);
     on<ReelsMemoryWarning>(_onMemoryWarning);
@@ -212,8 +213,18 @@ class ReelsBloc extends Bloc<ReelsEvent, ReelsState> {
     await _videoManager?.onPageChanged(event.index);
   }
 
-  void _onPlaybackPaused(ReelsPlaybackPaused event, Emitter<ReelsState> emit) {
-    _videoManager?.pauseAll();
+  void _onVideoSelected(ReelsVideoSelected event, Emitter<ReelsState> emit) {
+    final index = state.videos.indexWhere((video) => video.id == event.videoId);
+    if (index == -1) return;
+
+    emit(state.copyWith(scrollToPage: index));
+  }
+
+  Future<void> _onPlaybackPaused(
+    ReelsPlaybackPaused event,
+    Emitter<ReelsState> emit,
+  ) async {
+    await _videoManager?.pauseAll();
   }
 
   Future<void> _onPlaybackResumed(

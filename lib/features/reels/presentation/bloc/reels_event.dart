@@ -33,6 +33,15 @@ final class ReelsPageChanged extends ReelsEvent {
   List<Object?> get props => [index];
 }
 
+final class ReelsVideoSelected extends ReelsEvent {
+  const ReelsVideoSelected(this.videoId);
+
+  final String videoId;
+
+  @override
+  List<Object?> get props => [videoId];
+}
+
 final class ReelsPlaybackPaused extends ReelsEvent {
   const ReelsPlaybackPaused();
 }

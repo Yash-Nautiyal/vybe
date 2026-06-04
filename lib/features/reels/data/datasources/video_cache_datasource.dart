@@ -22,6 +22,11 @@ class VideoCacheDataSourceImpl implements VideoCacheDataSource {
   @override
   Future<File> getVideoFile(String url) async {
     try {
+      final cached = await _cacheManager.getFileFromCache(url);
+      if (cached != null && await cached.file.exists()) {
+        return cached.file;
+      }
+
       return await _cacheManager
           .getSingleFile(url)
           .timeout(_fetchTimeout, onTimeout: () => throw TimeoutException());

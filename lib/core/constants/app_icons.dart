@@ -8,6 +8,7 @@ class AppIcons {
   static const String _solidPath = 'assets/icons/solid';
   static const String _illustrationsPath = 'assets/illustrations';
   static const String _navPath = 'assets/icons/nav';
+  static const String _emptyPath = 'assets/icons/empty';
 
   // --------------- ILLUSTRATIONS ---------------
   static const String confirmIllustration =
@@ -39,6 +40,17 @@ class AppIcons {
   static const String homeIcon = '$_navPath/ic-home.svg';
   static const String listBoldDuotoneIcon =
       '$_navPath/ic-list-bold-duotone.svg';
+  static const String userManagementIcon =
+      '$_navPath/ic-user-management.svg';
+
+  // --------------- PROFILE ICONS ---------------
+  static const String profileGridIcon = widgetBoldIcon;
+  static const String profileCommentIcon = chatLinearIcon;
+  static const String profileStarIcon = starLinearIcon;
+  static const String profileFriendsIcon = userManagementIcon;
+  static const String profileBellIcon = alertIcon;
+  static const String profileSettingsIcon = settingIcon;
+  static const String profileEditIcon = penBoldIcon;
 
   // --------------- COMMON ICONS ---------------
   static const String searchFillIcon = '$_solidPath/ic-eva_search-fill.svg';
@@ -47,4 +59,11 @@ class AppIcons {
   static const String alertIcon = '$_solidPath/ic-alert.svg';
   static const String heartBoldIcon = '$_solidPath/ic-solar-heart-bold.svg';
   static const String starBoldIcon = '$_solidPath/ic-solar-star-bold.svg';
+
+  // --------------- EMPTY ICONS ---------------
+  static const String emptyCartIcon = '$_emptyPath/ic-cart.svg';
+  static const String emptyEmailIcon = '$_emptyPath/ic-email-disabled.svg';
+  static const String emptyChatIcon = '$_emptyPath/ic-chat-active.svg';
+  static const String emptyContentIcon = '$_emptyPath/ic-content.svg';
+  static const String emptyFolderIcon = '$_emptyPath/ic-folder-empty.svg';
 }

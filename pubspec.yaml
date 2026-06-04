@@ -74,6 +74,7 @@ flutter:
     - assets/icons/nav/
     - assets/icons/solid/
     - assets/icons/arrow/
+    - assets/icons/empty/
     - assets/images/
     - assets/illustrations/
 

@@ -70,4 +70,18 @@ class AppPallete {
   static const Color cardBg = Color(0xFF1A1A1A);        // Card surface
   static const Color containerColor = Color(0xFF222222); // Elevated container
   static const Color overlayDark = Color(0xFF111111);   // Deeper overlay
+
+  // Light theme (profile & light surfaces)
+  static const Color lightScaffoldBg = Color(0xFFFFFFFF);
+  static const Color lightCardBg = Color(0xFFFFFFFF);
+  static const Color lightContainer = Color(0xFFF2F2F7);
+  static const Color lightTextPrimary = Color(0xFF000000);
+  static const Color lightTextSecondary = Color(0xFF8E8E93);
+  static const Color lightTextMuted = Color(0xFF636366);
+  static const Color lightDivider = Color(0xFFE5E5EA);
+  static const Color lightBorder = Color(0xFFEBEBEB);
+  static const Color lightShadow = Color(0x0A000000);
+  static const Color coinGold = Color(0xFFF5B731);
+  static const Color coinGoldDark = Color(0xFFE5A020);
+  static const Color editBadge = Color(0xFFFF3B30);
 }

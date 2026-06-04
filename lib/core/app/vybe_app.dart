@@ -6,12 +6,11 @@ import 'package:vybe/core/network/app_network.dart';
 import 'package:vybe/core/network/network_info.dart';
 import 'package:vybe/core/theme/app_theme.dart';
 import 'package:vybe/core/widgets/connectivity/app_connectivity_overlay.dart';
-import 'package:vybe/core/widgets/connectivity/offline_launch_view.dart';
 import 'package:vybe/core/widgets/connectivity/app_connectivity_bar.dart';
 import 'package:vybe/core/widgets/loader/custom_loader.dart';
-import 'package:vybe/features/reels/presentation/pages/reels_page.dart';
+import 'package:vybe/features/reels/presentation/pages/reels_shell_page.dart';
 
-enum _AppLaunchState { loading, offline, ready }
+enum _AppLaunchState { loading, ready }
 
 class VybeApp extends StatefulWidget {
   const VybeApp({super.key, this.networkInfo});
@@ -51,12 +50,10 @@ class _VybeAppState extends State<VybeApp> {
 
     if (!connected) {
       setState(() {
-        _launchState = _AppLaunchState.offline;
         _barMode = ConnectivityBarMode.offline;
         _wasOffline = true;
         _theme = AppTheme.fallbackDarkTheme;
       });
-      return;
     }
 
     await _loadThemeAndEnterApp();
@@ -83,9 +80,6 @@ class _VybeAppState extends State<VybeApp> {
       setState(() {
         _wasOffline = true;
         _barMode = ConnectivityBarMode.offline;
-        if (_launchState != _AppLaunchState.ready) {
-          _launchState = _AppLaunchState.offline;
-        }
       });
       return;
     }
@@ -98,7 +92,7 @@ class _VybeAppState extends State<VybeApp> {
         setState(() => _barMode = ConnectivityBarMode.hidden);
       });
 
-      if (_launchState == _AppLaunchState.offline) {
+      if (_launchState != _AppLaunchState.ready) {
         _loadThemeAndEnterApp();
       }
       return;
@@ -112,8 +106,7 @@ class _VybeAppState extends State<VybeApp> {
       _AppLaunchState.loading => const Scaffold(
         body: Center(child: CustomLoader(size: 80, gap: 10, borderRadius: 18)),
       ),
-      _AppLaunchState.offline => OfflineLaunchView(onRetry: _bootstrap),
-      _AppLaunchState.ready => const ReelsPage(),
+      _AppLaunchState.ready => const ReelsShellPage(),
     };
   }
 
@@ -130,6 +123,8 @@ class _VybeAppState extends State<VybeApp> {
       title: 'VYbe',
       debugShowCheckedModeBanner: false,
       theme: _theme,
+      darkTheme: _theme,
+      themeMode: ThemeMode.dark,
       builder:
           (context, child) => AppConnectivityOverlay(
             barMode: _barMode,

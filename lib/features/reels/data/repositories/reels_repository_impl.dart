@@ -1,5 +1,6 @@
 import 'package:vybe/features/reels/data/datasources/reels_remote_datasource.dart';
 import 'package:vybe/features/reels/data/datasources/reels_local_datasource.dart';
+import 'package:vybe/features/reels/data/models/video_model.dart';
 import 'package:vybe/features/reels/domain/entities/video.dart';
 import 'package:vybe/features/reels/domain/repositories/reels_repository.dart';
 
@@ -12,7 +13,7 @@ class ReelsRepositoryImpl implements ReelsRepository {
 
   @override
   Future<List<Video>> getReels() async {
-    final models = await _remoteDataSource.fetchVideos();
+    final models = await _fetchRemoteOrCachedVideos();
     final likedIds = await _localDataSource.getLikedVideoIds();
     final starredIds = await _localDataSource.getStarredVideoIds();
 
@@ -23,6 +24,18 @@ class ReelsRepositoryImpl implements ReelsRepository {
         starred: starredIds.contains(entity.id),
       );
     }).toList();
+  }
+
+  Future<List<VideoModel>> _fetchRemoteOrCachedVideos() async {
+    try {
+      final models = await _remoteDataSource.fetchVideos();
+      await _localDataSource.cacheVideos(models);
+      return models;
+    } catch (_) {
+      final cached = await _localDataSource.getCachedVideos();
+      if (cached.isNotEmpty) return cached;
+      rethrow;
+    }
   }
 
   @override

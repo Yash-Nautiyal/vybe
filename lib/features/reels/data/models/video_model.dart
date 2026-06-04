@@ -51,6 +51,43 @@ class VideoModel {
     );
   }
 
+  factory VideoModel.fromJson(Map<String, dynamic> json) {
+    return VideoModel(
+      id: json['id'] as String? ?? '',
+      userId: json['userId'] as String? ?? '',
+      username: json['username'] as String? ?? '',
+      userProfilePic: json['userProfilePic'] as String? ?? '',
+      videoUrl: json['videoUrl'] as String? ?? '',
+      thumbnailUrl: json['thumbnailUrl'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      likes: (json['likes'] as num?)?.toInt() ?? 0,
+      comments: (json['comments'] as num?)?.toInt() ?? 0,
+      starredCount: (json['starredCount'] as num?)?.toInt() ?? 0,
+      createdAt:
+          json['createdAtMillis'] is int
+              ? DateTime.fromMillisecondsSinceEpoch(
+                json['createdAtMillis'] as int,
+              )
+              : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userId': userId,
+      'username': username,
+      'userProfilePic': userProfilePic,
+      'videoUrl': videoUrl,
+      'thumbnailUrl': thumbnailUrl,
+      'description': description,
+      'likes': likes,
+      'comments': comments,
+      'starredCount': starredCount,
+      'createdAtMillis': createdAt?.millisecondsSinceEpoch,
+    };
+  }
+
   Video toEntity() {
     return Video(
       id: id,

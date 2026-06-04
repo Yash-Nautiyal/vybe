@@ -17,10 +17,8 @@ class _AppConnectivityBarState extends State<AppConnectivityBar> {
   static const _animationDuration = Duration(milliseconds: 400);
   static const _animationCurve = Curves.easeOutCubic;
 
-  /// Drives slide/opacity — can hide before [ _styleMode ] updates.
   bool _visible = false;
 
-  /// Drives colors/text — kept until the hide animation finishes.
   ConnectivityBarMode _styleMode = ConnectivityBarMode.hidden;
 
   @override

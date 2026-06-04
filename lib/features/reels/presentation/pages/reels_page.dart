@@ -11,33 +11,40 @@ import '../widgets/reel_item.dart';
 
 import '../../reels_injection.dart';
 
-import '../widgets/overlay/dev_reel_overlay.dart';
-
 class ReelsPage extends StatelessWidget {
-  const ReelsPage({super.key, this.reelsBloc});
+  const ReelsPage({super.key, this.reelsBloc, this.onReelIndexChanged});
 
   final ReelsBloc? reelsBloc;
+  final ValueChanged<int>? onReelIndexChanged;
 
   @override
   Widget build(BuildContext context) {
+    final view = _ReelsView(onReelIndexChanged: onReelIndexChanged);
+
+    if (reelsBloc != null) {
+      return BlocProvider.value(value: reelsBloc!, child: view);
+    }
+
     return BlocProvider(
       create:
           (_) =>
-              (reelsBloc ?? ReelsInjection.createReelsBloc())
-                ..add(const ReelsLoadRequested()),
-      child: const _ReelsView(),
+              ReelsInjection.createReelsBloc()..add(const ReelsLoadRequested()),
+      child: view,
     );
   }
 }
 
 class _ReelsView extends StatefulWidget {
-  const _ReelsView();
+  const _ReelsView({this.onReelIndexChanged});
+
+  final ValueChanged<int>? onReelIndexChanged;
 
   @override
   State<_ReelsView> createState() => _ReelsViewState();
 }
 
-class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
+class _ReelsViewState extends State<_ReelsView>
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   final PageController _pageController = PageController();
   AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
 
@@ -47,6 +54,9 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
   bool get _isAppBackgrounded =>
       _lifecycleState == AppLifecycleState.hidden ||
       _lifecycleState == AppLifecycleState.detached;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -87,6 +97,8 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return BlocListener<ReelsBloc, ReelsState>(
       listenWhen: (previous, current) {
         if (current.snackbarMessage != null &&
@@ -192,6 +204,7 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
                   scrollDirection: Axis.vertical,
                   itemCount: state.videos.length,
                   onPageChanged: (index) {
+                    widget.onReelIndexChanged?.call(index);
                     context.read<ReelsBloc>().add(ReelsPageChanged(index));
                   },
                   itemBuilder: (context, index) {
@@ -215,7 +228,7 @@ class _ReelsViewState extends State<_ReelsView> with WidgetsBindingObserver {
                 );
               },
             ),
-            DevReelOverlay(pageController: _pageController),
+            // DevReelOverlay(pageController: _pageController),
           ],
         ),
       ),
