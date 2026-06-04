@@ -35,19 +35,18 @@ class AppIcons {
   static const String widgetBoldIcon = '$_solidPath/ic-solar-widget.svg';
   static const String penBoldIcon = '$_solidPath/ic-solar_pen-bold.svg';
   static const String trashBoldIcon = '$_solidPath/ic-solar_trash-bold.svg';
+  static const String userGroupIcon = '$_solidPath/ic-user-group.svg';
 
   // --------------- NAV ICONS ---------------
   static const String homeIcon = '$_navPath/ic-home.svg';
   static const String listBoldDuotoneIcon =
       '$_navPath/ic-list-bold-duotone.svg';
-  static const String userManagementIcon =
-      '$_navPath/ic-user-management.svg';
 
   // --------------- PROFILE ICONS ---------------
   static const String profileGridIcon = widgetBoldIcon;
   static const String profileCommentIcon = chatLinearIcon;
   static const String profileStarIcon = starLinearIcon;
-  static const String profileFriendsIcon = userManagementIcon;
+  static const String profileFriendsIcon = userGroupIcon;
   static const String profileBellIcon = alertIcon;
   static const String profileSettingsIcon = settingIcon;
   static const String profileEditIcon = penBoldIcon;
